@@ -147,3 +147,77 @@ def render_c2(members_z, zmean, lats, lons, *, region, init, step, members, sour
     fig.savefig(out_path, facecolor="white")
     plt.close(fig)
     return out_path
+
+
+# ---------------------------------------------------------------- C3 850hPa気温 偏差と確率
+T_ANOM_LEVELS = [-8, -6, -4, -3, -2, -1, 1, 2, 3, 4, 6, 8]            # K（=℃の差）
+T_ANOM_COLORS = ["#08306b", "#2166ac", "#4393c3", "#92c5de", "#c6dbef", "#e6eff7", "#ffffff",
+                 "#fde5d6", "#fcc7ab", "#f4a582", "#d6604d", "#b2182b", "#67001f"]
+PROB_LEVELS = [10, 20, 30, 40, 50, 60, 70, 80, 90]                      # %
+PROB_CMAP_HIGH = "YlOrRd"
+PROB_CMAP_LOW = "PuBu"
+
+
+def _axes(fig, rect, region):
+    """指定位置に地図の軸を作る（共通の海岸線・格子）。"""
+    r = REGIONS[region]
+    ax = fig.add_axes(rect, projection=r["proj"]())
+    ax.set_extent(r["extent"] if r["extent"] else (-180, 180, 20, 90), crs=PC)
+    ax.add_feature(cfeature.LAND.with_scale("110m"), facecolor="#f4f1e8", zorder=0)
+    ax.coastlines(resolution="110m", linewidth=0.5, color="#555555", zorder=6)
+    gl = ax.gridlines(draw_labels=False, linewidth=0.3, color="#999999", alpha=0.6,
+                      xlocs=range(-180, 181, 30), ylocs=range(-80, 81, 10))
+    gl.set_zorder(5)
+    return ax, r
+
+
+def render_c3(tanom_mean, prob, lats, lons, *, region, init, period_label, steps, members, kind,
+              threshold, clim_text, source_text, out_path, below_ground=None):
+    """C3: 左=T850 平年偏差のアンサンブル平均(K)、右=平年偏差が閾値を超える(下回る)メンバーの割合(%)。
+
+    kind: "high"=偏差が +threshold 以上、"low"=偏差が −threshold 以下 の確率。
+    tanom_mean, prob: (lat, lon)。prob は 0..1。
+    """
+    if below_ground is not None:                  # 850hPaが地面より下の格子は外挿値なので描かない
+        tanom_mean = np.where(below_ground, np.nan, tanom_mean)
+        prob = np.where(below_ground, np.nan, prob)
+    fig = plt.figure(figsize=(14, 6.8), dpi=100)
+    axl, r = _axes(fig, [0.02, 0.19, 0.465, 0.69], region)
+    axr, _ = _axes(fig, [0.515, 0.19, 0.465, 0.69], region)
+
+    a, la, lo = _crop(tanom_mean, lats, lons, r["crop"])
+    p, _, _ = _crop(prob * 100.0, lats, lons, r["crop"])
+    Xl, Yl = _xy(axl, la, lo)
+    Xr, Yr = _xy(axr, la, lo)
+
+    cm1 = ListedColormap(T_ANOM_COLORS)
+    b1 = [-1e3] + T_ANOM_LEVELS + [1e3]
+    cf1 = axl.contourf(Xl, Yl, a, levels=b1, cmap=cm1, norm=BoundaryNorm(b1, cm1.N), zorder=1)
+    cmap2 = plt.get_cmap(PROB_CMAP_HIGH if kind == "high" else PROB_CMAP_LOW)
+    colors2 = ["#ffffff"] + [cmap2(v) for v in np.linspace(0.12, 0.95, len(PROB_LEVELS))]
+    cm2 = ListedColormap(colors2)
+    b2 = [0] + PROB_LEVELS + [100.0001]
+    cf2 = axr.contourf(Xr, Yr, p, levels=b2, cmap=cm2, norm=BoundaryNorm(b2, cm2.N), zorder=1)
+    axr.contour(Xr, Yr, p, levels=[50], colors="#222222", linewidths=1.0, zorder=3)
+
+    cal = fig.add_axes([0.10, 0.125, 0.30, 0.016])
+    cb1 = fig.colorbar(cf1, cax=cal, orientation="horizontal", ticks=T_ANOM_LEVELS)
+    cb1.ax.tick_params(labelsize=7)
+    cb1.set_label("850hPa気温の平年偏差 (℃)  青=低い / 赤=高い", fontsize=8)
+    car = fig.add_axes([0.60, 0.125, 0.30, 0.016])
+    cb2 = fig.colorbar(cf2, cax=car, orientation="horizontal", ticks=PROB_LEVELS)
+    cb2.ax.tick_params(labelsize=7)
+    word = f"+{threshold:g}℃以上" if kind == "high" else f"−{threshold:g}℃以下"
+    cb2.set_label(f"平年偏差が{word}となるメンバーの割合 (%)  黒線=50%", fontsize=8)
+
+    fig.text(0.02, 0.945, "850hPa気温  平年偏差と確率", fontsize=15, weight="bold")
+    fig.text(0.02, 0.912, f"{period_label}の平均  [{r['label']}]  左: アンサンブル平均の偏差  右: 偏差{word}の確率", fontsize=9.5,
+             color="#333333")
+    foot = (f"ECMWF IFS ENS ({members}メンバー) 初期値 {init:%Y-%m-%d %H}UTC  対象: 予報{steps[0]}〜{steps[-1]}時間 "
+            f"({len(steps)}時刻の平均)   平年値: {clim_text}\n"
+            f"確率は「メンバーの期間平均偏差が閾値を超えた割合」で、気象庁の高い/平年並/低いの階級確率とは定義が異なります。"
+            f"{source_text}   アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。")
+    fig.text(0.02, 0.012, foot, fontsize=6.8, color="#444444", va="bottom", linespacing=1.5)
+    fig.savefig(out_path, facecolor="white")
+    plt.close(fig)
+    return out_path

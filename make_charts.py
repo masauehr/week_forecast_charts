@@ -68,15 +68,48 @@ def build_c2(init, steps, regions, data_dir=fe.DEFAULT_DATA_DIR, out_dir=OUT_DIR
     return out
 
 
+def build_c3(init, period, regions, threshold=1.0, data_dir=fe.DEFAULT_DATA_DIR, out_dir=OUT_DIR):
+    """C3: T850 の期間平均偏差（アンサンブル平均）と、偏差が ±threshold℃を超えるメンバーの割合。"""
+    p = PERIODS[period]
+    steps = p["steps"]
+    fields, lats, lons, members = [], None, None, None
+    for s in steps:
+        path = fe.step_path(init, s, "t850", data_dir)
+        if not path.exists():
+            raise FileNotFoundError(f"{path} がありません。fetch_ens.py --steps {s} --vars t850 で取得してください")
+        d, lats, lons, members = fe.load_members(path, "t850")
+        fields.append(d)
+    sp_path = fe.fetch_step(init, steps[0], "sp", data_dir)
+    sp, _, _, _ = fe.load_members(sp_path, "sp")
+    below = stats.ens_mean(sp) < 85000.0                # 850hPaが地面より下の格子
+    x = stats.period_mean(fields)                       # (member, lat, lon) [K]
+    clim = cl.clim_on_grid("t850", cl.valid_times(init, steps), lats, lons)
+    xa = stats.anomaly(x, clim)                         # メンバーごとの期間平均偏差
+    amean = stats.ens_mean(xa)
+    out = []
+    for kind, prob in (("high", stats.prob_above(xa, threshold)), ("low", stats.prob_below(xa, -threshold))):
+        for region in regions:
+            f = Path(out_dir) / f"ecmwf-ens_{init:%Y%m%d%H}_c3{kind}_p{period}_{region}.png"
+            f.parent.mkdir(parents=True, exist_ok=True)
+            charts.render_c3(amean, prob, lats, lons, region=region, init=init, period_label=p["label"],
+                             steps=steps, members=len(members), kind=kind, threshold=threshold,
+                             clim_text=cl.SOURCE_TEXT, source_text=SOURCE, out_path=f, below_ground=below)
+            out.append(f)
+            print("作成:", f)
+    return out
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--init", required=True, help="YYYYMMDDHH（UTC）")
-    ap.add_argument("--chart", choices=["c1", "c2"], default="c1")
-    ap.add_argument("--period", type=int, choices=sorted(PERIODS), default=1, help="c1 用")
+    ap.add_argument("--chart", choices=["c1", "c2", "c3"], default="c1")
+    ap.add_argument("--period", type=int, choices=sorted(PERIODS), default=1, help="c1・c3 用")
     ap.add_argument("--steps", type=int, nargs="+", default=[168, 240, 336], help="c2 用（予報時間[h]）")
     ap.add_argument("--regions", nargs="+", default=["asia", "nh"], choices=list(charts.REGIONS))
     a = ap.parse_args()
     if a.chart == "c1":
         build_c1(fe.parse_init(a.init), a.period, a.regions)
-    else:
+    elif a.chart == "c2":
         build_c2(fe.parse_init(a.init), a.steps, a.regions)
+    else:
+        build_c3(fe.parse_init(a.init), a.period, a.regions)
