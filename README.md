@@ -1,13 +1,13 @@
-# extended_range_charts（週間・長期予報用 天気図）
+# week_to_season_charts（週間・長期予報用 天気図）
 
-詳しくは [extended-range-charts.md](extended-range-charts.md) を参照。
+詳しくは [week-to-season-charts.md](week-to-season-charts.md) を参照。
 
 ## 目的
 週間天気予報（〜7日）・2週間気温予報・1か月予報・3か月予報の**判断に使う天気図**を作る。
 通常の「ある1時刻の予報図」（nwp_chart_web）ではなく、**アンサンブル予報の統計（平均・ばらつき・確率）と平年からの偏差**を主役にした図を扱う。
 
 ## 通常の天気図との違い
-| 項目 | nwp_chart_web（短期〜中期） | extended_range_charts（週間〜長期） |
+| 項目 | nwp_chart_web（短期〜中期） | week_to_season_charts（週間〜長期） |
 |---|---|---|
 | 主役 | 決定論予報（1メンバー） | アンサンブル平均・スプレッド・確率 |
 | 時間軸 | 初期値からの時刻（FT） | 期間平均（週平均・5日平均・2週間平均） |
@@ -31,7 +31,7 @@
 | [CHARTS.md](CHARTS.md) | 図種カタログ（各図の目的・使う要素・読み方） |
 | [DATA_SOURCES.md](DATA_SOURCES.md) | データ源・利用条件・平年値の扱い |
 | [PLAN.md](PLAN.md) | フェーズ計画・未決事項・進捗 |
-| [extended-range-charts.md](extended-range-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
+| [week-to-season-charts.md](week-to-season-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
 
 ## 状況
 2026-11-14 新規作成。**Phase 0（計画・調査）のみ。コードは未着手。**

@@ -1,4 +1,4 @@
-# extended_range_charts マニュアル
+# week_to_season_charts マニュアル
 
 週間天気予報・2週間気温予報・1か月予報・3か月予報の判断に使う天気図を作るプロジェクト（2026-11-14 新規作成・Phase 0＝計画のみ）。
 
@@ -28,3 +28,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 日付 | 内容 |
 |---|---|
 | 2026-11-14 | 新規作成（計画・ドキュメントのみ） |
+| 2026-11-14 | 名称を extended_range_charts から week_to_season_charts（週間〜季節）に変更 |

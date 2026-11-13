@@ -1,4 +1,4 @@
-# DESIGN — extended_range_charts
+# DESIGN — week_to_season_charts
 
 ## 方針
 - **データ → 統計（NumPy）→ 描画（cartopy/matplotlib）→ PNG** の単純な3段構成。
@@ -16,7 +16,7 @@ publish : （任意）manifest.json を作り Web 表示
 
 ## 構成案（実装時）
 ```
-extended_range_charts/
+week_to_season_charts/
   fetch_ens.py      # アンサンブル取得
   climatology.py    # 平年値の作成・読込
   stats.py          # 平均・スプレッド・確率・期間平均
