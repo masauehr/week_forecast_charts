@@ -31,3 +31,4 @@
 | 2026-11-14 | DATA_SOURCES.md に公式ページ調査結果（ECMWF ENS/AIFS ENS/GEFS/RISH）を追記 |
 | 2026-11-14 | 名称を extended_range_charts から week_to_season_charts（週間〜季節）に変更 |
 | 2026-11-14 | RISH を日付別に走査: 現行の気象庁アンサンブル(EPSW/EPS1)は入手不可と確定（EPSWは2020/03まで）。主データを ECMWF ENS＋GSM＋GEFS に決定 |
+| 2026-11-14 | JMBSC有料配信を調査（週間/2週間・1か月/6か月アンサンブルGPVあり・約27,000円/月＋開設50,000円・FTP put型）。ECMWFで作った処理を気象庁モデルへ適用する差分表を追記。Range取得は並列化が必須と実測 |
