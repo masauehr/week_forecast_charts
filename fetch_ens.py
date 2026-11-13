@@ -130,16 +130,25 @@ def _get_range(url: str, off: int, ln: int) -> bytes:
             time.sleep(2 * (attempt + 1))
 
 
-def fetch_step(init: datetime, step: int, names=("z500", "t850", "msl"),
+def step_path(init: datetime, step: int, name: str, data_dir: Path = DEFAULT_DATA_DIR) -> Path:
+    """変数ごとのファイルの置き場所: data_dir/{初期値}/f{step:03d}_{変数}.grib2。
+
+    変数ごとに分ける理由: 「ファイルがあれば取得済み」と判定するため。変数を後から足しても、
+    既存の別変数のファイルに邪魔されずに取得できる。
+    """
+    return Path(data_dir) / f"{init:%Y%m%d%H}" / f"f{step:03d}_{name}.grib2"
+
+
+def fetch_step(init: datetime, step: int, name: str = "z500",
                data_dir: Path = DEFAULT_DATA_DIR, workers: int = WORKERS) -> Path | None:
-    """指定ステップの対象変数（全メンバー）を data_dir/{初期値}/f{step:03d}.grib2 に保存。既存ならスキップ。
+    """指定ステップの変数 name（全メンバー）を step_path に保存。既存ならスキップ。
 
     GRIB2 はメッセージを連結してそのまま読める。失敗したら None（途中ファイルは残さない）。
     """
-    dest = Path(data_dir) / f"{init:%Y%m%d%H}" / f"f{step:03d}.grib2"
+    dest = step_path(init, step, name, data_dir)
     if dest.exists():
         return dest
-    rows = select_rows(read_index(init, step), names)
+    rows = select_rows(read_index(init, step), (name,))
     if not rows:
         return None
     ranges = merge_ranges([(x["_offset"], x["_length"]) for _, x in rows])
@@ -162,12 +171,13 @@ def fetch_step(init: datetime, step: int, names=("z500", "t850", "msl"),
 
 def fetch_steps(init: datetime, steps, names=("z500", "t850", "msl"),
                 data_dir: Path = DEFAULT_DATA_DIR, workers: int = WORKERS):
-    """複数ステップを順に取得（ステップ内で並列）。{step: Path or None} を返す。"""
+    """複数ステップ×複数変数を順に取得（1ファイル内で並列）。{(step, 変数): Path or None} を返す。"""
     out = {}
     for s in steps:
-        t0 = time.time()
-        out[s] = fetch_step(init, s, names, data_dir, workers)
-        print(f"  f{s:03d}: {'OK' if out[s] else 'NG'} {time.time() - t0:.1f}秒", flush=True)
+        for n in names:
+            t0 = time.time()
+            out[(s, n)] = fetch_step(init, s, n, data_dir, workers)
+            print(f"  f{s:03d} {n}: {'OK' if out[(s, n)] else 'NG'} {time.time() - t0:.1f}秒", flush=True)
     return out
 
 

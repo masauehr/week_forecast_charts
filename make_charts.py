@@ -28,7 +28,7 @@ def build_c1(init, period, regions, data_dir=fe.DEFAULT_DATA_DIR, out_dir=OUT_DI
     steps = p["steps"]
     fields, lats, lons, members = [], None, None, None
     for s in steps:
-        path = Path(data_dir) / f"{init:%Y%m%d%H}" / f"f{s:03d}.grib2"
+        path = fe.step_path(init, s, "z500", data_dir)
         if not path.exists():
             raise FileNotFoundError(f"{path} がありません。fetch_ens.py --steps {s} --vars z500 で取得してください")
         d, lats, lons, members = fe.load_members(path, "z500")
@@ -49,10 +49,34 @@ def build_c1(init, period, regions, data_dir=fe.DEFAULT_DATA_DIR, out_dir=OUT_DI
     return out
 
 
+def build_c2(init, steps, regions, data_dir=fe.DEFAULT_DATA_DIR, out_dir=OUT_DIR):
+    """C2 スパゲッティ図（1時刻ごと）。Z500 の該当ステップが取得済みである必要がある。"""
+    out = []
+    for s in steps:
+        path = fe.step_path(init, s, "z500", data_dir)
+        if not path.exists():
+            raise FileNotFoundError(f"{path} がありません。fetch_ens.py --steps {s} --vars z500 で取得してください")
+        d, lats, lons, members = fe.load_members(path, "z500")
+        zmean = stats.ens_mean(d)
+        for region in regions:
+            f = Path(out_dir) / f"ecmwf-ens_{init:%Y%m%d%H}_c2_f{s:03d}_{region}.png"
+            f.parent.mkdir(parents=True, exist_ok=True)
+            charts.render_c2(d, zmean, lats, lons, region=region, init=init, step=s, members=len(members),
+                             source_text=SOURCE, out_path=f)
+            out.append(f)
+            print("作成:", f)
+    return out
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--init", required=True, help="YYYYMMDDHH（UTC）")
-    ap.add_argument("--period", type=int, choices=sorted(PERIODS), default=1)
+    ap.add_argument("--chart", choices=["c1", "c2"], default="c1")
+    ap.add_argument("--period", type=int, choices=sorted(PERIODS), default=1, help="c1 用")
+    ap.add_argument("--steps", type=int, nargs="+", default=[168, 240, 336], help="c2 用（予報時間[h]）")
     ap.add_argument("--regions", nargs="+", default=["asia", "nh"], choices=list(charts.REGIONS))
     a = ap.parse_args()
-    build_c1(fe.parse_init(a.init), a.period, a.regions)
+    if a.chart == "c1":
+        build_c1(fe.parse_init(a.init), a.period, a.regions)
+    else:
+        build_c2(fe.parse_init(a.init), a.steps, a.regions)

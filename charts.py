@@ -104,3 +104,46 @@ def render_c1(zmean, zanom, lats, lons, *, region, init, period_label, steps, me
     fig.savefig(out_path, facecolor="white")
     plt.close(fig)
     return out_path
+
+
+# ---------------------------------------------------------------- C2 スパゲッティ図
+# 等値線(gpm)と色。5400=寒気・トラフの目安、5700=中緯度の流れの目安（調整可）
+SPAGHETTI_LEVELS = ((5400, "#1f6fb4"), (5700, "#d9541e"))
+
+
+def render_c2(members_z, zmean, lats, lons, *, region, init, step, members, source_text, out_path,
+              levels=SPAGHETTI_LEVELS):
+    """C2: 500hPa高度の等値線を全メンバー重ねて描く（スパゲッティ図）。1時刻の予報。
+
+    members_z: (member, lat, lon) [gpm]、zmean: アンサンブル平均 (lat, lon)。
+    線が束ねられていれば確実性が高く、ばらけていれば低い。
+    """
+    fig, ax, r = _map(region)
+    _, la, lo = _crop(zmean, lats, lons, r["crop"])
+    sl_j, sl_i = slice(None, None, 2), slice(None, None, 2)      # 0.5°に間引いて軽くする
+    la2, lo2 = la[sl_j], lo[sl_i]
+    X, Y = _xy(ax, la2, lo2)
+    for lev, color in levels:
+        for m in range(members_z.shape[0]):
+            f, _, _ = _crop(members_z[m], lats, lons, r["crop"])
+            ax.contour(X, Y, f[sl_j, sl_i], levels=[lev], colors=color, linewidths=0.6, alpha=0.45, zorder=2)
+        zm, _, _ = _crop(zmean, lats, lons, r["crop"])
+        ax.contour(X, Y, zm[sl_j, sl_i], levels=[lev], colors="#000000", linewidths=2.2, zorder=4)
+
+    fig.text(0.03, 0.945, "500hPa高度  スパゲッティ図", fontsize=15, weight="bold")
+    vt = init.replace(tzinfo=None)
+    from datetime import timedelta
+    valid = vt + timedelta(hours=step)
+    legend = "  ".join(f"{lev}gpm" for lev, _ in levels)
+    fig.text(0.03, 0.915, f"予報{step}時間後（有効 {valid:%m/%d %H}UTC） [{r['label']}]  等値線: {legend}  "
+             "細線=各メンバー・太黒線=アンサンブル平均", fontsize=9.5, color="#333333")
+    # 凡例（色）
+    for k, (lev, color) in enumerate(levels):
+        fig.text(0.12 + 0.14 * k, 0.125, f"━ {lev}gpm", color=color, fontsize=10, weight="bold")
+    foot = (f"ECMWF IFS ENS ({members}メンバー) 初期値 {init:%Y-%m-%d %H}UTC。線が束ねられている領域は予報の確実性が高く、"
+            "ばらける領域は低い。\n"
+            f"{source_text}   アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。")
+    fig.text(0.03, 0.012, foot, fontsize=6.8, color="#444444", va="bottom", linespacing=1.5)
+    fig.savefig(out_path, facecolor="white")
+    plt.close(fig)
+    return out_path

@@ -46,3 +46,10 @@ def test_merge_ranges():
 
 def test_candidate_inits_only_00_12():
     assert all(t.hour in (0, 12) for t in fe.candidate_inits(2))
+
+
+def test_step_path_is_per_variable():
+    t = fe.parse_init("2026111312")
+    a = fe.step_path(t, 24, "z500", Path("/x"))
+    b = fe.step_path(t, 24, "t850", Path("/x"))
+    assert a != b and a.name == "f024_z500.grib2" and b.name == "f024_t850.grib2"
