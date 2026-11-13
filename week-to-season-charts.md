@@ -59,3 +59,11 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | 新規作成（計画・ドキュメントのみ） |
 | 2026-11-14 | 名称を extended_range_charts から week_to_season_charts（週間〜季節）に変更 |
 | 2026-11-14 | JMBSC有料配信を調査（週間/2週間・1か月/6か月アンサンブルGPVあり・約27,000円/月＋開設50,000円・FTP put型）。ECMWFで作った処理を気象庁モデルへ適用する差分表を追記。Range取得は並列化が必須と実測 |
+
+## 実装状況（2026-11-14）
+- 取得 `fetch_ens.py`・平年値 `climatology.py`・統計 `stats.py`・描画 `charts.py`・CLI `make_charts.py`。テスト9件。
+- **C1（500hPa高度のアンサンブル平均と平年偏差）**を期間1（予報1〜7日目）・期間2（8〜14日目）× 北半球・東アジアで作成できる。
+  - 取得: `python fetch_ens.py --init 2026111312 --steps 24 36 … 336 --vars z500`（Z500のみ26ステップ約13分・約534MB）
+  - 作図: `python make_charts.py --init 2026111312 --period 1`（出力 `output/`）
+- 平年値は NCEP/NCAR 再解析の日別長期平均 1991–2020（NOAA PSL）。予報モデルとの系統差で全球平均が約+14gpm高く出るため、**±30gpm以内は白**にしている。
+| 2026-11-14 | 取得層(並列Range)・平年値(NCEP/NCAR 1991-2020)・統計層・C1描画を実装し、ECMWF ENS 2026-11-13 12Z で1〜7日・8〜14日の図を作成 |
