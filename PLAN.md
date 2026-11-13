@@ -30,3 +30,4 @@
 | 2026-11-14 | プロジェクト新規作成。README/CLAUDE/DESIGN/CHARTS/DATA_SOURCES/PLAN/マニュアルを作成（コード未着手） |
 | 2026-11-14 | DATA_SOURCES.md に公式ページ調査結果（ECMWF ENS/AIFS ENS/GEFS/RISH）を追記 |
 | 2026-11-14 | 名称を extended_range_charts から week_to_season_charts（週間〜季節）に変更 |
+| 2026-11-14 | RISH を日付別に走査: 現行の気象庁アンサンブル(EPSW/EPS1)は入手不可と確定（EPSWは2020/03まで）。主データを ECMWF ENS＋GSM＋GEFS に決定 |
