@@ -63,3 +63,19 @@ footer p { margin: 4px 0; }
 
 /* hidden 属性を display 指定より優先（.row などの display:flex に負けて表示されるのを防ぐ） */
 [hidden] { display: none !important; }
+
+/* メニューをコンパクトに（期間・領域・表示を1行にまとめ、余白とボタンを小さく） */
+.controls { padding: 8px 12px; }
+.row { margin: 3px 0; gap: 8px; }
+.row.multi { gap: 4px 22px; }
+.grp { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row.multi .lab { width: auto; }
+.seg { gap: 4px; }
+.seg button { padding: 2px 10px; font-size: .85rem; }
+select { padding: 2px 6px; font-size: .88rem; }
+.lab, label { width: 3.6em; white-space: nowrap; }
+.chk, .inl { font-size: .88rem; }
+header { padding-top: 12px; }
+.sub { margin: 0 0 8px; }
+.sitenav { margin: 0 0 8px; }
+.view { margin-top: 10px; }

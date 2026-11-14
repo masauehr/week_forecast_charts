@@ -28,19 +28,21 @@
       <span class="lab">図種</span>
       <div id="charts" class="seg" role="group" aria-label="図種"></div>
     </div>
-    <div class="row">
-      <span class="lab" id="sel-lab">期間</span>
-      <div id="sels" class="seg" role="group" aria-label="期間・時刻"></div>
-    </div>
-    <div class="row">
-      <span class="lab">領域</span>
-      <div id="regions" class="seg" role="group" aria-label="領域"></div>
-    </div>
-    <div class="row">
-      <span class="lab">表示</span>
-      <label class="chk" title="2枚を左右に並べて表示します（Cキーでも切り替え）"><input type="checkbox" id="sideChk"> 並べて表示</label>
-      <select id="sideMode" hidden aria-label="並べ方"></select>
-      <label class="inl">画像の大きさ <select id="sizeSel" title="画像の表示サイズ。「画面に収める」は縦が切れないように縮めます"></select></label>
+    <div class="row multi">
+      <div class="grp">
+        <span class="lab" id="sel-lab">期間</span>
+        <div id="sels" class="seg" role="group" aria-label="期間・時刻"></div>
+      </div>
+      <div class="grp">
+        <span class="lab">領域</span>
+        <div id="regions" class="seg" role="group" aria-label="領域"></div>
+      </div>
+      <div class="grp">
+        <span class="lab">表示</span>
+        <label class="chk" title="2枚を左右に並べて表示します（Cキーでも切り替え）"><input type="checkbox" id="sideChk"> 並べて表示</label>
+        <select id="sideMode" hidden aria-label="並べ方"></select>
+        <label class="inl">画像の大きさ <select id="sizeSel" title="画像の表示サイズ。「画面に収める」は縦が切れないように縮めます"></select></label>
+      </div>
     </div>
     <div class="row" id="sideRow" hidden>
       <span class="lab">右の図</span>
