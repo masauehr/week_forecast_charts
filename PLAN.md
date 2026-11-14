@@ -76,3 +76,9 @@
 ## 名称変更と長期予報の分離（2026-11-14）
 - **1か月以上の長期予報は別プロジェクト `../long_range_charts` に移す**（ユーザー決定）。このプロジェクトは週間〜2週間（〜15日先）に絞る。
 - フォルダ名を week_to_season_charts → **week_forecast_charts** に変更（手元のみ）。GitHub のリポジトリ名・公開サイトURL・cron-job.org のジョブURL・トークン名は**旧名のまま**（リポジトリ名は後で変更できる。変更するときは cron-job.org の URL 2つ・CRON_JOB_ORG.md・README・各マニュアルの URL を直す）。launchd のジョブ名も `com.masahiro.week_forecast_charts_*` に変更（登録し直し）。
+
+## 天気図の公開と運用（2026-11-14 実測）
+- `update-maps`: GEFS 約4.5分、ENS 約30分（作図ジョブ）＋公開約1分。初回GEFSは海岸線データの並列ダウンロード競合で失敗→メインプロセスで先読みして解消。ローカルGEFSは接続リセットで1ステップが落ちたため、リトライと同時接続の削減を追加。
+- 公開サイトの容量（1初期値）: ENS 約70MB・GEFS 約58MB（jet300追加前）。各モデル直近3初期値で約0.4GB。
+- 週間用のジェットは300hPa主（ユーザー指定）。統計図⇔天気図の相互リンク、ローカル閲覧 `serve_local.py` を追加。
+- 次: cron-job.org に天気図用ジョブ（`update-maps.yml` を `{"ref":"main","inputs":{"model":"all"}}` で起動）を追加。起動時刻は `check_availability.py --report`（ENS・GEFS）の実測後に決める。GSM（決定論・ローカル専用）は未実装。

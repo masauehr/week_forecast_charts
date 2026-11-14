@@ -70,6 +70,12 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - 作る: `python mean_pipeline.py --model gefs`（約3分）／`--model ens`（Actionsで実行を想定）。公開は Actions の `update-maps`（手動実行）。
 - GSM（決定論・ローカル専用）は未実装。
 
+## ローカルで見る・相互リンク・ジェット（2026-11-14）
+- **ローカル表示**: `python serve_local.py`（met_env_310）→ http://127.0.0.1:8803/（統計図）、/maps/（天気図 標準版）、/maps/board/（画用紙版）。手元の `output/` をそのまま表示するだけなので、先に `python mean_pipeline.py --model gefs`（ENSは `--model ens`）と `python pipeline.py` で作る。127.0.0.1だけで待ち受け、Ctrl+Cで停止。GSM（ローカル専用）を足すときもここで見られるようにする。
+- **相互リンク**: 統計図の画面の上部から天気図（標準版・画用紙版）へ、標準版・画用紙版の画面から統計図へ移動できる。
+- **週間用のジェットは300hPaが主**（jet300）。GEFS の平均(geavg)には300hPaの気温・湿度が無いので、31メンバーから範囲取得して平均して補う（700hPaの上昇流も同様。1ステップ約24秒）。jet200・t300は東アジアのみ。画用紙版の既定は 300・500高度・700・850・850EPT・地上。
+- 表示が空になったとき: 画面の案内に従う（天気図は `mean_pipeline.py` で作り、`serve_local.py` で起動）。作図が途中で止まっても manifest は書く。
+
 ## 改修履歴
 | 日付 | 内容 |
 |---|---|
@@ -95,3 +101,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | 自動化の下地（配信時刻の実測 check_availability.py・公開済みスキップ・トークン期限通知・CRON_JOB_ORG.md）を追加。気象庁の有料配信は契約しない決定を記録 |
 | 2026-11-14 | アンサンブル平均の天気図（標準版・画用紙版）を追加: GEFS(geavg)・ENS平均場・nwp_charts移植・maps_web・update-maps（未実行） |
 | 2026-11-14 | 名称を week_to_season_charts から week_forecast_charts に変更（手元のフォルダのみ）。1か月以上の長期予報は long_range_charts に分離 |
+| 2026-11-14 | 週間用ジェットを300hPa主に(GEFSはメンバー平均で補う)・統計図⇔天気図の相互リンク・ローカル閲覧 serve_local.py・接続リセット対策のリトライ・海岸線データの先読み(並列作図の初回エラー修正)・天気図の初公開(GEFS・ENS) |

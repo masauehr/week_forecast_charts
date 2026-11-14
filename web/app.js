@@ -133,6 +133,10 @@ async function main() {
     $("status").textContent = "図の一覧(manifest.json)を読み込めませんでした: " + e.message;
     return;
   }
+  if (!M.inits || !M.inits.length) {          // 図がまだ無い（手元でまだ作っていない等）: エラーにせず案内を出す
+    $("status").textContent = "統計図がまだありません。ローカルで見るときは python pipeline.py で作ってから serve_local.py を起動してください（天気図は上のリンクから見られます）。";
+    return;
+  }
   const sel = $("init");
   for (const it of M.inits) {
     const o = document.createElement("option");
