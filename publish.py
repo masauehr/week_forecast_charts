@@ -140,7 +140,8 @@ def _publish_maps(pub: Path, maps_src, maps_keep: int, maps_web: Path | None):
     out = mroot / "output"
     gone = []
     srcs = _maps_list(maps_src)
-    import maps_manifest
+    if srcs:                                                         # 画面だけの反映(--web-only)では読み込まない（作図ライブラリが無い環境で動くように）
+        import maps_manifest
     for src in srcs:
         model, init = src.parent.name, src.name                      # output/maps/{model}/{init}
         if model in maps_manifest.LOCAL_ONLY:
