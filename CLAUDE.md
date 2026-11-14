@@ -2,7 +2,7 @@
 
 ## 概要
 週間予報・2週間気温予報（〜15日先）の判断に使う天気図（アンサンブル統計・平年偏差・確率・アンサンブル平均の天気図）を作る。
-**1か月以上の長期予報はこのプロジェクトでは扱わない**（2026-11-14 に `../long_range_charts` へ移した）。旧名は week_to_season_charts。**GitHub のリポジトリ名・公開サイトURLは 2026-11-14 に week_forecast_charts へ変更済み**（旧URLは404）。**トークン名 `week-to-season-charts-dispatch` は旧名のまま**（トークンは名前ではなくリポジトリに紐づくので有効）。cron-job.org のジョブURLは新名に直す（CRON_JOB_ORG.md の4・6節）。
+**1か月以上の長期予報はこのプロジェクトでは扱わない**（2026-11-14 に `../long_range_charts` へ移した）。旧名は week_to_season_charts。**GitHub のリポジトリ名・公開サイトURLは 2026-11-14 に week_forecast_charts へ変更済み**（旧URLは404）。**トークン名 `week_to_season_charts` は旧名のまま**（トークンは名前ではなくリポジトリに紐づくので有効）。cron-job.org のジョブURLは新名に直す（CRON_JOB_ORG.md の4・6節）。
 マニュアルは [week-forecast-charts.md](week-forecast-charts.md)、設計は [DESIGN.md](DESIGN.md)、図種は [CHARTS.md](CHARTS.md)、データ源は [DATA_SOURCES.md](DATA_SOURCES.md)、計画は [PLAN.md](PLAN.md)。
 
 ## 実行環境
@@ -29,7 +29,7 @@
 - CIの日本語フォントは Noto Sans CJK JP（`charts.py` のフォント指定とワークフローの apt を揃える）。平年値は軽量版 `data/clim/clim_compact.npz` を Actions キャッシュ（`climatology.py --prepare`）。
 - 図のファイル名: `ecmwf-ens_{初期値}_{c1|c2|c3high|c3low}_{p期間|f時間}_{asia|nh}.png`（`publish.parse_name` が読む）。
 - **気象庁（JMBSC）の有料配信は使わない**（2026-11-14 ユーザー決定）。気象庁モデルの追加を提案しない。
-- 定期起動は cron-job.org（[CRON_JOB_ORG.md](CRON_JOB_ORG.md)）。`update.yml` は初期値が空だと「揃っていない／公開済みなら何もしない」。専用トークン `week-to-season-charts-dispatch` の期限は `~/.config/week_forecast_charts/token_expiry` に書き、更新したら書き換える。トークンの値は書かない・貼らない。
+- 定期起動は cron-job.org（[CRON_JOB_ORG.md](CRON_JOB_ORG.md)）。`update.yml` は初期値が空だと「揃っていない／公開済みなら何もしない」。専用トークン `week_to_season_charts` の期限は `~/.config/week_forecast_charts/token_expiry` に書き、更新したら書き換える。トークンの値は書かない・貼らない。
 - C3 の確率（±1℃）は温暖化の傾向と平年値の系統差で高温側に偏る。階級確率と混同させない表現を保つ。
 
 ## アンサンブル平均の天気図（標準版・画用紙版・2026-11-14）

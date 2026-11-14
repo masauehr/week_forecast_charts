@@ -38,7 +38,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_foreca
 ## 3. 専用トークンの作成・更新（ユーザーが行う）
 ### 3-1. トークンの作成（GitHub の画面）
 1. GitHub → 右上アイコン → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
-2. Token name: `week-to-season-charts-dispatch`
+2. Token name: `week_to_season_charts`（現在のトークンの名前。新規に作り直すなら `week_forecast_charts` など分かりやすい名でよい。期限は 2027-02-12）
 3. Expiration: **90 days**（最大でも期限付き）
 4. Repository access: **Only select repositories** → `masauehr/week_forecast_charts` だけ
 5. Permissions → Repository permissions → **Actions: Read and write**（それ以外は付けない。Metadata: Read-only は自動）
@@ -56,7 +56,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_foreca
 期限の14・7・3・2・1日前に通知し、期限切れ後は毎日通知する（毎日9:10 JST）。**トークンを更新したら `token_expiry` を新しい期限に書き換える**（忘れると期限切れ通知が毎日届く）。
 
 ### 3-3. トークンの更新
-GitHub の Fine-grained tokens で `week-to-season-charts-dispatch` を Regenerate（または新規作成）→ cron-job.org の各ジョブのヘッダー `Authorization: Bearer <新しい値>` を差し替え → `~/.config/week_forecast_charts/token_expiry` を書き換え。
+GitHub の Fine-grained tokens で `week_to_season_charts`（トークン名）を Regenerate（または新規作成）→ cron-job.org の各ジョブのヘッダー `Authorization: Bearer <新しい値>` を差し替え → `~/.config/week_forecast_charts/token_expiry` を書き換え。
 
 ## 4. cron-job.org のジョブ設定
 1. https://cron-job.org でアカウント作成（無料）→ ログイン → **CREATE CRONJOB**
