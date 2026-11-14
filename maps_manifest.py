@@ -21,8 +21,11 @@ GEFS_REGISTRY_URL = "https://registry.opendata.aws/noaa-gefs/"
 MODELS = {
     "ens": dict(label="ECMWF ENS平均"),
     "gefs": dict(label="GEFS平均"),
+    # 気象庁 全球モデル(GSM・決定論・京大RISH配信)。**ローカル専用**: 公開サイトには載せない（LOCAL_ONLY。publish.py・Actions・manifest で除外）
+    "gsm": dict(label="JMA GSM（決定論）", local_only=True),
 }
-DISCLAIMER = ("本サイトの図は、元データ（アンサンブル予報）の各メンバーを平均して加工し、本アプリが作図したもので、"
+LOCAL_ONLY = frozenset(k for k, v in MODELS.items() if v.get("local_only"))
+DISCLAIMER = ("本サイトの図は、元データ（アンサンブル予報・気象庁GSMは決定論）を加工し、本アプリが作図したもので、"
               "各提供元（ECMWF・NOAA/NCEP）の公式な図ではありません。平均を取るため、前線・低気圧・降水・風の強さは"
               "実際の1つの予報よりなだらかになり、先の時刻ほど弱まります（予報そのものではなく、メンバーの平均です）。"
               "湿数・相当温位は、平均した気温・湿度から計算しています。"
@@ -50,6 +53,17 @@ def legal_text(model: str, year: int, accessed: str) -> dict:
             "availability, or for any loss or damage arising from their use. The data are provided on an \"as is\" basis.",
         ]
         return dict(short=short, notice=notice, license_url=CC_BY_URL)
+    if model == "gsm":
+        short = ("気象庁 全球モデル(GSM) GPV（京都大学生存圏研究所 RISH 配信）を加工して作図。決定論の1メンバーで、アンサンブル平均ではありません。"
+                 "気象庁の公式な図ではありません。本アプリはローカルで動かす調査用で、この図は公開サイトには含まれません。データの利用条件は配信元（RISH・気象庁）に従ってください。")
+        notice = [
+            "データ: 気象庁 全球モデル(GSM) GPV。京都大学生存圏研究所 (RISH) のアーカイブ "
+            "http://database.rish.kyoto-u.ac.jp/arch/jmadata/ から取得。",
+            "改変: 元データの一部の変数を使い、本アプリが加工して図にしたもの。気象庁の公式な図ではありません。降水は12時間の平均です。",
+            "このモデルの図はローカル（調査用）専用で、公開サイトには載せません。再配布・公開する場合は、配信元（RISH・気象庁）の利用条件を確認してください。",
+            "免責: 図の内容・利用による損害について作成者は責任を負いません。防災・安全に関わる判断には気象庁の公式情報を使ってください。",
+        ]
+        return dict(short=short, notice=notice, license_url="http://database.rish.kyoto-u.ac.jp/arch/jmadata/")
     short = (f"NOAA/NCEP Global Ensemble Forecast System (GEFS) ensemble mean, accessed {accessed} from "
              "registry.opendata.aws/noaa-gefs. Modified: the data were processed into charts and are not original NOAA data. "
              "Not endorsed by or affiliated with NOAA/NWS. Provided as is; use at your own risk.")
@@ -91,11 +105,14 @@ def scan(out_dir: Path, model: str):
     return inits
 
 
-def write_manifest(out_dir, now=None):
+def write_manifest(out_dir, now=None, public_only=False):
+    """manifest.json を作る。public_only=True（公開用）なら、ローカル専用のモデル（GSM）は画像が出力先にあっても載せない。"""
     out_dir = Path(out_dir)
     now = now or datetime.now(timezone.utc)
     models = {}
     for model, info in MODELS.items():
+        if public_only and info.get("local_only"):
+            continue
         inits = scan(out_dir, model)
         if inits:
             legal = legal_text(model, now.year, now.strftime("%Y-%m-%d"))

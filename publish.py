@@ -140,8 +140,11 @@ def _publish_maps(pub: Path, maps_src, maps_keep: int, maps_web: Path | None):
     out = mroot / "output"
     gone = []
     srcs = _maps_list(maps_src)
+    import maps_manifest
     for src in srcs:
         model, init = src.parent.name, src.name                      # output/maps/{model}/{init}
+        if model in maps_manifest.LOCAL_ONLY:
+            raise SystemExit(f"{model} はローカル専用のモデルなので公開できません: {src}")
         if not re.fullmatch(r"\d{10}", init):
             raise SystemExit(f"--maps-src は {{model}}/{{初期値YYYYMMDDHH}} のフォルダにしてください: {src}")
         dst = out / model / init
@@ -156,8 +159,7 @@ def _publish_maps(pub: Path, maps_src, maps_keep: int, maps_web: Path | None):
     if maps_web and Path(maps_web).exists():                         # 画面（標準版・画用紙版）
         shutil.copytree(maps_web, mroot, dirs_exist_ok=True)
     if srcs:                                                         # 図が増減したときだけ manifest を作り直す
-        import maps_manifest
-        maps_manifest.write_manifest(out)
+        maps_manifest.write_manifest(out, public_only=True)             # 公開用はローカル専用モデルを載せない
     return gone
 
 

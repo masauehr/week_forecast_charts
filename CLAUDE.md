@@ -33,7 +33,7 @@
 - C3 の確率（±1℃）は温暖化の傾向と平年値の系統差で高温側に偏る。階級確率と混同させない表現を保つ。
 
 ## アンサンブル平均の天気図（標準版・画用紙版・2026-11-14）
-- 目的: 週間予報期間（0〜168h・12時間毎）の**アンサンブル平均の天気図**。モデルは ENS（ECMWF ENS 50メンバー平均・`fetch_ens_mean.py`）と GEFS（NOAA の geavg=平均ファイル・`fetch_gefs.py`）。GSM（決定論・ローカル専用）は未実装（実装するときは公開しない。`local_only` の考え方）。
+- 目的: 週間予報期間（0〜168h・12時間毎）の**アンサンブル平均の天気図**。モデルは ENS（ECMWF ENS 50メンバー平均・`fetch_ens_mean.py`）と GEFS（NOAA の geavg=平均ファイル・`fetch_gefs.py`）。GSM（気象庁・決定論・京大RISH配信）は**ローカル専用**（`fetch_gsm.py`。0〜168h・12時間毎・降水は12時間差）。
 - 作図は nwp_chart_web の `nwp_charts.py` を `mean_charts.py` にコピーして調整したもの（共通部品化しない）。入力は `F` 辞書（msl/sp/u10/v10/t2/tcc/rr/p[気圧面][gh,t,u,v,r,w]）。**図種ごとの必要な気圧面（CHARTS の levels）が F に無ければ作らない**（`charts_for`）。GEFS の平均(geavg)には300hPaの気温・湿度と700hPaの上昇流が無いので、**各メンバー(pgrb2b・31)から範囲取得して平均して補う**（`fetch_gefs.fetch_extras`。1ステップ約24秒）。週間用のジェットは300hPaが主（jet300。jet200・t300は東アジアのみ）。
 - **850hPa は2種に分ける**: `t850`（気温・湿数・風）と `ept850`（相当温位・風）。SSI は描かない。**湿数・EPT はアンサンブル平均場（気温・湿度）から計算**（メンバーごとに計算して平均したものではない）。マニフェストの免責にも明記してある。**平均図は前線・降水・風がなだらかになる（予報そのものではない）旨の表示を外さない**。
 - 画面は nwp_chart_web の `web/` を `maps_web/` にコピーして調整（更新・同期・過去分・断面図は hidden）。画像規則・manifest は nwp_chart_web と同じ（`output/{model}/{init}/{region}/{chart}_{ft:03d}.png`、`maps_manifest.py`）。公開サイトの `maps/` 配下に置く。**localStorage のキーは `wsc_size`・`wscBoard.v1`・`wscBoard.presets.v1`**（同じドメイン masauehr.github.io の nwp_chart_web とキーを共有しない）。
@@ -41,6 +41,11 @@
 - 作図: `python mean_pipeline.py --model gefs|ens [--init YYYYMMDDHH]`（1ステップ=1プロセスで 取得→F→全図種×全地域を描画。GRIB2は一時領域に置いて削除）。GEFS は全15時刻で約3分・約60MB。ENS は1ステップ約518秒（手元）／Actions では約1/4の見込み。
 - 公開: Actions `update-maps`。**モデルごとに「作図→公開」が独立して流れる**（再利用ワークフロー `maps-model.yml` を ens・gefs で別々に呼ぶ。早い GEFS（約5分）は遅い ENS（約30分）を待たずに公開される。公開ジョブだけ `concurrency: publish` で順番待ち＝同時pushの取りこぼしなし）。`publish.py --maps-src output/maps/<model>/<init>`（複数可）。天気図は**モデルごとに直近3初期値**を残す（`MAPS_KEEP`。1初期値約60MB）。統計図(`charts/`)と天気図(`maps/output/`)は互いに carry する（片方の更新でもう片方を消さない）。
 - 画面だけ直したら `maps_web/**` を push → `deploy-web` が反映（図は作り直さない）。
+
+## GSM（ローカル専用・決定論）
+- **GSM の図・データは公開しない**。`maps_manifest.LOCAL_ONLY`（`MODELS["gsm"]` の `local_only`）が基準。4重に除外している（**外さない**）: ①`maps_manifest.write_manifest(public_only=True)` が載せない ②`publish.py` が `LOCAL_ONLY` のモデルの `--maps-src` を拒否 ③`mean_pipeline.py` が `GITHUB_ACTIONS=true` では GSM を作らない ④`update-maps.yml` のモデル選択は ens/gefs のみ。新しいローカル専用モデルを足すなら `local_only` を付ける。
+- 作る: `python mean_pipeline.py --model gsm`（1ステップ約30秒・全15時刻で約8分・約0.9GBを取得して一時領域で削除。出力 `output/maps/gsm/<初期値>/`）。見る: `python serve_local.py`（標準版・画用紙版のモデル選択に「JMA GSM（決定論）」が出る。2モデル比較・モデル違いで ENS平均/GEFS平均と比べられる）。
+- 気象庁データなので、**配信元（RISH・気象庁）の利用条件に従う**。再配布・公開する場合は条件を先に確認する（このプロジェクトでは公開しない）。
 
 ## ドキュメント更新
 変更したら [week-forecast-charts.md](week-forecast-charts.md) と `pc_docs/manuals/automation/week-forecast-charts.md` の**両方**を更新し、`pc_docs/README.md` の表も直す。

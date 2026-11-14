@@ -23,7 +23,7 @@ for _k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", 
 
 import fetch_gefs as fg
 
-MODEL_LABEL = {"gefs": "GEFS mean", "ens": "ECMWF ENS mean"}
+MODEL_LABEL = {"gefs": "GEFS mean", "ens": "ECMWF ENS mean", "gsm": "JMA GSM"}
 ROOT = Path(__file__).resolve().parent
 
 
@@ -55,6 +55,9 @@ def _step_once(args):
         if model == "gefs":
             p = fg.fetch_mean(init, step, Path(td) / f"f{step:03d}.grib2")
             F = fg.load_F(p, extras=fg.fetch_extras(init, step))      # 700hPa上昇流・300hPa気温と湿度をメンバー平均で補う
+        elif model == "gsm":                                       # 気象庁GSM（決定論・ローカル専用）
+            import fetch_gsm
+            F = fetch_gsm.build_F(fg.parse_init(init_text), step, Path(td))
         elif model == "ens":
             import fetch_ens as fe
             import fetch_ens_mean as em
@@ -96,7 +99,8 @@ def run(model, init, out_root, steps=None, regions=None, jobs=4):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", choices=["gefs", "ens"], default="gefs")
+    ap.add_argument("--model", choices=["gefs", "ens", "gsm"], default="gefs",
+                    help="gsm は気象庁GSM（決定論）。ローカル専用で公開しない")
     ap.add_argument("--init", help="YYYYMMDDHH（UTC）。省略時は最新の揃った初期値")
     ap.add_argument("--out", default=str(ROOT / "output" / "maps"))
     ap.add_argument("--steps", type=int, nargs="+")
@@ -105,10 +109,16 @@ if __name__ == "__main__":
     ap.add_argument("--skip-if-published", action="store_true",
                     help="その初期値がすでに公開サイトにあれば何も作らず終了（cron-job.org の多めの起動用）")
     a = ap.parse_args()
+    import maps_manifest
+    if a.model in maps_manifest.LOCAL_ONLY and os.environ.get("GITHUB_ACTIONS") == "true":
+        raise SystemExit(f"{a.model} はローカル専用のモデルです（Actions では作りません）")
     if a.jobs is None:
-        a.jobs = 4 if a.model == "gefs" else 2
+        a.jobs = 4 if a.model == "gefs" else (3 if a.model == "gsm" else 2)
     if a.init:
         init = fg.parse_init(a.init)
+    elif a.model == "gsm":
+        import fetch_gsm
+        init = fetch_gsm.find_latest_complete()
     elif a.model == "ens":
         import fetch_ens as fe
         init = fe.find_latest_complete(max_step=max(fg.STEPS_WEEK))
@@ -117,7 +127,7 @@ if __name__ == "__main__":
     if init is None:
         raise SystemExit("揃った初期値が見つかりません")
     print("初期値:", init, flush=True)
-    if a.skip_if_published:
+    if a.skip_if_published and a.model not in maps_manifest.LOCAL_ONLY:
         import publish
         if f"{init:%Y%m%d%H}" in publish.published_map_inits(a.model):
             print("すでに公開済みのため何もしません")

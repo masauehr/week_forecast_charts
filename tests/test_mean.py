@@ -73,3 +73,39 @@ def test_warm_up_loads_every_region(monkeypatch):
     monkeypatch.setattr(mc, "make_projection", lambda region: (None, None))
     mc.warm_up()
     assert seen == list(mc.REGIONS)
+
+
+# ---------------------------------------------------------------- GSM（ローカル専用）の公開除外
+def test_gsm_is_local_only():
+    import maps_manifest as mm
+    assert "gsm" in mm.LOCAL_ONLY and "ens" not in mm.LOCAL_ONLY and "gefs" not in mm.LOCAL_ONLY
+
+
+def _fake_maps(root, models):
+    for m in models:
+        d = root / m / "2026111312" / "japan"
+        d.mkdir(parents=True)
+        (d / "surf_000.png").write_bytes(b"png")
+
+
+def test_manifest_excludes_gsm_when_public(tmp_path):
+    import maps_manifest as mm
+    _fake_maps(tmp_path, ["ens", "gefs", "gsm"])
+    assert set(mm.write_manifest(tmp_path)["models"]) == {"ens", "gefs", "gsm"}          # ローカル用は全部
+    assert set(mm.write_manifest(tmp_path, public_only=True)["models"]) == {"ens", "gefs"}  # 公開用はGSMを載せない
+
+
+def test_publish_refuses_gsm(tmp_path):
+    import pytest
+    import publish
+    _fake_maps(tmp_path, ["gsm"])
+    with pytest.raises(SystemExit) as e:
+        publish.publish(None, dry_run=True, maps_src=tmp_path / "gsm" / "2026111312")
+    assert "ローカル専用" in str(e.value)
+
+
+def test_gsm_filename_and_ddhh():
+    import fetch_gsm as gs
+    t = gs.parse_init("2026111312")
+    assert gs.gsm_filename(t, 24) == "Z__C_RJTD_20261113120000_GSM_GPV_Rgl_FD0100_grib2.bin"
+    assert gs.ft_to_ddhh(36) == 112 and gs.ddhh_to_ft(112) == 36
