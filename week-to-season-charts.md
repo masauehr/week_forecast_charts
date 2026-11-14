@@ -53,6 +53,12 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 ## 現状と次の一手
 コードは未着手（探索用スクリプトは scratch/）。次は 取得層（並列Range取得）→ ERA5気候値 → C1の最小実装。
 
+## 公開サイトと運用（2026-11-14）
+- 公開サイト: https://masauehr.github.io/week_to_season_charts/ （GitHub Pages・gh-pages ブランチ。PNGとmanifestだけ。GRIB2は載せない）。画面は初期値・図種（C1/C2/C3高温/C3低温）・期間または時刻・領域（東アジア/北半球）を切り替え、←→で期間・時刻、↑↓で図種を切替。
+- 図の更新: GitHub の Actions タブ → `update` → Run workflow（初期値 YYYYMMDDHH を空にすると最新の揃ったもの）。約8分。
+- 画面だけ直す: web/ を push すると `deploy-web` が自動で反映する。
+- 自動化（cron-job.org）は未着手。
+
 ## 改修履歴
 | 日付 | 内容 |
 |---|---|
