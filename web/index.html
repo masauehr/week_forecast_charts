@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>週間〜長期予報用 天気図</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>週間〜長期予報用 天気図</h1>
+  <p class="sub">アンサンブル予報の平均・ばらつき・確率と平年偏差（ECMWF ENS 50メンバー）</p>
+</header>
+
+<main>
+  <section class="controls" aria-label="表示の選択">
+    <div class="row">
+      <label for="init">初期値</label>
+      <select id="init"></select>
+      <span id="updated" class="muted"></span>
+    </div>
+    <div class="row">
+      <span class="lab">図種</span>
+      <div id="charts" class="seg" role="group" aria-label="図種"></div>
+    </div>
+    <div class="row">
+      <span class="lab" id="sel-lab">期間</span>
+      <div id="sels" class="seg" role="group" aria-label="期間・時刻"></div>
+    </div>
+    <div class="row">
+      <span class="lab">領域</span>
+      <div id="regions" class="seg" role="group" aria-label="領域"></div>
+    </div>
+  </section>
+
+  <section class="view">
+    <p id="status" class="muted" role="status"></p>
+    <figure>
+      <img id="img" alt="">
+      <figcaption id="caption"></figcaption>
+    </figure>
+    <details class="help" open>
+      <summary>この図の見方</summary>
+      <p id="help"></p>
+    </details>
+    <p class="muted keys">キーボード: ← → で期間・時刻を切替、↑ ↓ で図種を切替</p>
+  </section>
+</main>
+
+<footer>
+  <p id="legal-source"></p>
+  <p id="legal-clim"></p>
+  <p id="legal-disclaimer" class="warn"></p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

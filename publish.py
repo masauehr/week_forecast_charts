@@ -9,6 +9,7 @@
   4. 履歴を溜めない単一の孤立コミットとして force push（容量を増やさない）
 
 例: python publish.py --src output/2026111312
+    python publish.py --web-only                  （画面だけ差し替え。図は公開ブランチのまま）
     python publish.py --src output/2026111312 --remote /tmp/bare.git   （ローカル検証）
 CI では環境変数 GITHUB_REPOSITORY / GITHUB_TOKEN から公開先を決める。
 """
@@ -86,14 +87,17 @@ def remote_url(remote=None):
     raise SystemExit("公開先が不明です。--remote を指定するか GITHUB_REPOSITORY と GITHUB_TOKEN を設定してください")
 
 
-def publish(src: Path, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = None, dry_run=False):
-    src = Path(src)
-    init = src.name
-    if not re.fullmatch(r"\d{10}", init):
-        raise SystemExit(f"--src は初期値(YYYYMMDDHH)名のフォルダにしてください: {src}")
-    pngs = sorted(src.glob("*.png"))
-    if not pngs:
-        raise SystemExit(f"{src} にPNGがありません")
+def publish(src: Path | None, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = None, dry_run=False):
+    """src=None なら画面(web/)だけを差し替える（図は公開ブランチのものをそのまま残す）。"""
+    pngs, init = [], None
+    if src is not None:
+        src = Path(src)
+        init = src.name
+        if not re.fullmatch(r"\d{10}", init):
+            raise SystemExit(f"--src は初期値(YYYYMMDDHH)名のフォルダにしてください: {src}")
+        pngs = sorted(src.glob("*.png"))
+        if not pngs:
+            raise SystemExit(f"{src} にPNGがありません")
     url = remote_url(remote) if not dry_run else None
 
     with tempfile.TemporaryDirectory(prefix="wsc_pub_") as td:
@@ -108,9 +112,12 @@ def publish(src: Path, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = No
                     shutil.copytree(old, pub / "charts")
                 shutil.rmtree(pub / "_old", ignore_errors=True)
         charts = pub / "charts"
-        (charts / init).mkdir(parents=True, exist_ok=True)
-        for f in pngs:
-            shutil.copy2(f, charts / init / f.name)
+        if init:
+            (charts / init).mkdir(parents=True, exist_ok=True)
+            for f in pngs:
+                shutil.copy2(f, charts / init / f.name)
+        elif not charts.exists():
+            raise SystemExit("--web-only には公開済みの charts/ が必要です（先に図を公開してください）")
         gone = prune(charts, keep)
         man = build_manifest(charts, keep)
         (pub / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -130,7 +137,7 @@ def publish(src: Path, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = No
         _git(pub, "config", "user.name", "github-actions[bot]")
         _git(pub, "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
         _git(pub, "add", "-A")
-        _git(pub, "commit", "-q", "-m", f"公開: {init}")
+        _git(pub, "commit", "-q", "-m", f"公開: {init}" if init else "画面の更新")
         _git(pub, "push", "-q", "--force", url, f"HEAD:{BRANCH}")
         print("反映しました")
         return man
@@ -138,10 +145,13 @@ def publish(src: Path, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = No
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", required=True, help="output/<初期値YYYYMMDDHH> フォルダ")
+    ap.add_argument("--src", help="output/<初期値YYYYMMDDHH> フォルダ（--web-only のときは不要）")
+    ap.add_argument("--web-only", action="store_true", help="画面(web/)だけ差し替える。図は触らない")
     ap.add_argument("--remote", help="公開先URL/パス（省略時は GITHUB_REPOSITORY・GITHUB_TOKEN）")
     ap.add_argument("--keep", type=int, default=KEEP_DEFAULT)
     ap.add_argument("--web", default=str(Path(__file__).resolve().parent / "web"))
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    publish(Path(a.src), a.remote, a.keep, Path(a.web), a.dry_run)
+    if not a.web_only and not a.src:
+        ap.error("--src か --web-only のどちらかが必要です")
+    publish(None if a.web_only else Path(a.src), a.remote, a.keep, Path(a.web), a.dry_run)

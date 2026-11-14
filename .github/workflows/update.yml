@@ -17,7 +17,7 @@ permissions:
   contents: write   # 公開ブランチ(gh-pages)へのpush
 
 concurrency:
-  group: update
+  group: publish
   cancel-in-progress: false
 
 jobs:

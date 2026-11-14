@@ -1,0 +1,33 @@
+name: deploy-web
+
+# 画面(web/)だけを公開ブランチ(gh-pages)へ反映する。図は作り直さない（数十秒で終わる）。
+# 図の更新は update.yml（手動実行）。同じブランチへ force push するので concurrency を共有する。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "publish.py"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 画面だけ反映
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python publish.py --web-only

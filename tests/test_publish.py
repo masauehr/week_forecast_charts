@@ -51,3 +51,21 @@ def test_publish_to_local_bare_repo_keeps_single_commit(tmp_path):
     assert "manifest.json" in files
     assert "charts/2026111300/ecmwf-ens_2026111300_c1_p1_asia.png" in files   # 前回分を引き継ぐ
     assert "charts/2026111312/ecmwf-ens_2026111312_c1_p1_asia.png" in files
+
+
+def test_web_only_replaces_web_and_keeps_charts(tmp_path):
+    bare = tmp_path / "bare.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+    src = tmp_path / "out" / "2026111312"
+    src.mkdir(parents=True)
+    (src / "ecmwf-ens_2026111312_c1_p1_asia.png").write_bytes(b"png")
+    web = tmp_path / "web"
+    web.mkdir()
+    (web / "index.html").write_text("v1", encoding="utf-8")
+    pb.publish(src, remote=str(bare), web_dir=web)
+    (web / "index.html").write_text("v2", encoding="utf-8")
+    pb.publish(None, remote=str(bare), web_dir=web)                 # 画面だけ
+    show = lambda p: subprocess.run(["git", "--git-dir", str(bare), "show", f"{pb.BRANCH}:{p}"],
+                                    capture_output=True, text=True, check=True).stdout
+    assert show("index.html") == "v2"
+    assert "ecmwf-ens_2026111312_c1_p1_asia.png" in show("manifest.json")   # 図は残っている
