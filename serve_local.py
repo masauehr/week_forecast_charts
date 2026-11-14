@@ -57,6 +57,9 @@ def build_site():
     (out / "maps").mkdir(exist_ok=True)
     _link(SITE / "maps" / "output", out / "maps")
     mf = out / "maps" / "manifest.json"
+    if any(p.is_dir() for p in (out / "maps").iterdir()):     # 画像があれば manifest を手元の画像から作り直す（作図が途中で止まった場合の取りこぼし対策）
+        import maps_manifest
+        maps_manifest.write_manifest(out / "maps")
     if mf.exists():
         m = json.loads(mf.read_text(encoding="utf-8"))
         notes.append("天気図: " + (", ".join(f"{k} {[i['init'] for i in v['inits']]}" for k, v in m["models"].items()) or "なし"))

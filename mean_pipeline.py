@@ -123,7 +123,9 @@ if __name__ == "__main__":
             print("すでに公開済みのため何もしません")
             raise SystemExit(0)
     t0 = time.time()
-    d, files = run(a.model, init, a.out, a.steps, a.regions, a.jobs)
     import maps_manifest
-    maps_manifest.write_manifest(a.out)
+    try:
+        d, files = run(a.model, init, a.out, a.steps, a.regions, a.jobs)
+    finally:
+        maps_manifest.write_manifest(a.out)         # 途中で止まっても、できた分は manifest に載せる（画面が「読めません」にならない）
     print(f"完了: {len(files)}枚 {time.time() - t0:.0f}秒 → {d}")

@@ -613,8 +613,8 @@
   // ---------- 起動
   async function boot() {
     try { S.m = await (await fetch(OUT + "manifest.json", { cache: "no-store" })).json(); }
-    catch (e) { $("dateLabel").textContent = "manifest.json を読めません（update_latest.py を先に実行）"; return; }
-    if (!modelKeys().length) { $("dateLabel").textContent = "天気図がありません（update_latest.py を実行）"; return; }
+    catch (e) { $("dateLabel").textContent = "manifest.json を読めません（mean_pipeline.py で天気図を作り、serve_local.py で起動）"; return; }
+    if (!modelKeys().length) { $("dateLabel").textContent = "天気図がありません（mean_pipeline.py --model gefs で作る）"; return; }
     const sv = load();
     S.model = modelKeys().includes(sv.model) ? sv.model : modelKeys()[0];
     const inits = allInits();

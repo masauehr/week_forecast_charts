@@ -166,12 +166,12 @@
       const r = await fetch(OUT + "manifest.json", { cache: "no-store" });
       m = await r.json();
     } catch (e) {
-      $("views").innerHTML = '<div style="padding:40px">manifest.json を読めません。先に <code>python update_latest.py</code> を実行してください。</div>';
+      $("views").innerHTML = '<div style="padding:40px">manifest.json を読めません。ローカルで見るときは、先に <code>python mean_pipeline.py --model gefs</code>（ENS平均は <code>--model ens</code>）で天気図を作り、<code>python serve_local.py</code> で起動してください。</div>';
       return;
     }
     S.manifest = m;
     if (!modelKeys().length) {
-      $("views").innerHTML = '<div style="padding:40px">天気図がまだありません。<code>python update_latest.py</code> を実行してください。</div>';
+      $("views").innerHTML = '<div style="padding:40px">天気図がまだありません。<code>python mean_pipeline.py --model gefs</code>（ENS平均は <code>--model ens</code>）で作ってください。</div>';
       return;
     }
     $("updated").textContent = "更新 " + updatedUtc(m.updated);
