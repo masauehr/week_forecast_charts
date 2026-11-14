@@ -1,0 +1,134 @@
+name: update-maps
+
+# アンサンブル平均の天気図（標準版・画用紙版）を作り、公開ブランチ(gh-pages)の maps/ へ反映する。
+#  - モデル（ENS=ECMWF ENS平均 / GEFS=NOAA GEFS平均）ごとに別ジョブで並行して作図（1週間分=0〜168時間を12時間毎）
+#  - 作図ジョブは成果物(artifact)を残し、最後の公開ジョブが1回の push でまとめて載せる（同時 push の取りこぼしを避ける）
+#  - GRIB2 は1ステップごとに一時領域へ取得して削除（ディスクに残さない）
+#  - 初期値が空（cron-job.org の定期起動）のときは、揃っていない・公開済みなら何もせず終わる（冪等）
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "作図するモデル（all で両方）"
+        type: choice
+        default: all
+        options: [all, ens, gefs]
+      init:
+        description: "初期値 YYYYMMDDHH（UTCの00か12。空なら最新の揃ったもの）"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      models: ${{ steps.pick.outputs.models }}
+    steps:
+      - id: pick
+        env:
+          INPUT_MODEL: ${{ inputs.model }}
+        run: |
+          if [ -n "$INPUT_MODEL" ] && [ "$INPUT_MODEL" != "all" ]; then
+            echo "models=[\"$INPUT_MODEL\"]" >> "$GITHUB_OUTPUT"
+          else
+            echo 'models=["gefs","ens"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.plan.outputs.models) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: 日本語フォント
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: 依存のインストール
+        run: pip install -r requirements.txt
+      - name: Natural Earth（海岸線・国境）のキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/cartopy
+          key: cartopy-ne-v2
+      - name: テスト
+        run: python -m pytest tests -q
+      - name: 取得と作図（${{ matrix.model }}）
+        env:
+          INIT: ${{ inputs.init }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -n "$INIT" ]; then
+            python mean_pipeline.py --model ${{ matrix.model }} --init "$INIT" --out output/maps
+          else
+            python mean_pipeline.py --model ${{ matrix.model }} --out output/maps --skip-if-published
+          fi
+      - name: 成果物の確認
+        id: made
+        run: |
+          if ls -d output/maps/${{ matrix.model }}/??????????/ >/dev/null 2>&1; then
+            echo "made=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "made=false" >> "$GITHUB_OUTPUT"
+            echo "作成した図がない（揃っていない／公開済み）"
+          fi
+      - name: 成果物の保存
+        if: steps.made.outputs.made == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: maps-${{ matrix.model }}
+          path: |
+            output/maps/${{ matrix.model }}
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: ${{ !cancelled() && needs.build.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: 日本語フォント
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: 依存のインストール（manifest 作成が作図モジュールを読むため）
+        run: pip install -r requirements.txt
+      - name: 成果物の取り込み
+        uses: actions/download-artifact@v4
+        with:
+          pattern: maps-*
+          path: art
+      - name: 公開ブランチへ反映
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          args=""
+          for d in art/maps-*/??????????; do
+            [ -d "$d" ] || continue
+            model=$(basename "$(dirname "$d")" | sed 's/^maps-//')
+            mkdir -p "output/maps/$model"
+            mv "$d" "output/maps/$model/"
+            args="$args --maps-src output/maps/$model/$(basename "$d")"
+          done
+          if [ -z "$args" ]; then
+            echo "公開する図がない（揃っていない／公開済み）"
+          else
+            python publish.py $args
+          fi

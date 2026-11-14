@@ -3,7 +3,7 @@
 """アンサンブル平均の天気図（標準版・画用紙版用）を作るパイプライン。
 
 1ステップ（予報時間）ごとに別プロセスで「取得 → F 辞書 → 全図種×全地域を描画」を行い、GRIB2 は一時ディレクトリに置いて
-すぐ削除する（ディスクに残さない）。出力: {out}/{model}/{初期値YYYYMMDDHH}/{図種}_{地域}_f{FFF}.png
+すぐ削除する（ディスクに残さない）。出力: {out}/{model}/{初期値YYYYMMDDHH}/{地域}/{図種}_{FFF}.png ＋ {out}/manifest.json（maps_manifest.py）
 
 例: python mean_pipeline.py --model gefs --init 2026111312 --out output/maps
     python mean_pipeline.py --model gefs --steps 0 12 24 --jobs 2     （一部だけ）
@@ -28,7 +28,8 @@ ROOT = Path(__file__).resolve().parent
 
 
 def out_name(chart, region, ft):
-    return f"{chart}_{region}_f{ft:03d}.png"
+    """{地域}/{図種}_{FFF}.png（nwp_chart_web の画像規則と同じ。画面をほぼそのまま使うため）"""
+    return f"{region}/{chart}_{ft:03d}.png"
 
 
 def _step_worker(args):
@@ -56,8 +57,9 @@ def _step_worker(args):
             if regions and region not in regions:
                 continue
             f = out_dir / out_name(chart, region, step)
+            f.parent.mkdir(parents=True, exist_ok=True)
             mc.render_chart(chart, region, F, init, step, str(f), model=MODEL_LABEL[model])
-            made.append(f.name)
+            made.append(out_name(chart, region, step))
     print(f"  f{step:03d}: {len(made)}枚 {time.time() - t0:.0f}秒", flush=True)
     return made
 
@@ -86,6 +88,8 @@ if __name__ == "__main__":
     ap.add_argument("--steps", type=int, nargs="+")
     ap.add_argument("--regions", nargs="+")
     ap.add_argument("--jobs", type=int, default=None, help="同時に処理するステップ数（既定: gefs=4, ens=2）")
+    ap.add_argument("--skip-if-published", action="store_true",
+                    help="その初期値がすでに公開サイトにあれば何も作らず終了（cron-job.org の多めの起動用）")
     a = ap.parse_args()
     if a.jobs is None:
         a.jobs = 4 if a.model == "gefs" else 2
@@ -99,6 +103,13 @@ if __name__ == "__main__":
     if init is None:
         raise SystemExit("揃った初期値が見つかりません")
     print("初期値:", init, flush=True)
+    if a.skip_if_published:
+        import publish
+        if f"{init:%Y%m%d%H}" in publish.published_map_inits(a.model):
+            print("すでに公開済みのため何もしません")
+            raise SystemExit(0)
     t0 = time.time()
     d, files = run(a.model, init, a.out, a.steps, a.regions, a.jobs)
+    import maps_manifest
+    maps_manifest.write_manifest(a.out)
     print(f"完了: {len(files)}枚 {time.time() - t0:.0f}秒 → {d}")

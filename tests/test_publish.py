@@ -69,3 +69,45 @@ def test_web_only_replaces_web_and_keeps_charts(tmp_path):
                                     capture_output=True, text=True, check=True).stdout
     assert show("index.html") == "v2"
     assert "ecmwf-ens_2026111312_c1_p1_asia.png" in show("manifest.json")   # 図は残っている
+
+
+def _maps_dir(root, model, init):
+    d = root / "output" / "maps" / model / init / "japan"
+    d.mkdir(parents=True)
+    (d / "surf_000.png").write_bytes(b"png")
+    return root / "output" / "maps" / model / init
+
+
+def test_maps_publish_keeps_stats_and_prunes_per_model(tmp_path, monkeypatch):
+    import maps_manifest
+    bare = tmp_path / "bare.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+    # 統計図を先に公開
+    src = tmp_path / "out" / "2026111312"
+    src.mkdir(parents=True)
+    (src / "ecmwf-ens_2026111312_c1_p1_asia.png").write_bytes(b"png")
+    web = tmp_path / "web"
+    web.mkdir()
+    (web / "index.html").write_text("stats", encoding="utf-8")
+    mweb = tmp_path / "mweb"
+    (mweb / "board").mkdir(parents=True)
+    (mweb / "index.html").write_text("maps", encoding="utf-8")
+    (mweb / "board" / "index.html").write_text("board", encoding="utf-8")
+    pb.publish(src, remote=str(bare), web_dir=web, maps_web=mweb)
+    # 天気図を3回（keep=2 で古い初期値が消える）。統計図(charts/)は残る
+    for init in ("2026111300", "2026111312", "2026111400"):
+        m = _maps_dir(tmp_path / f"w{init}", "gefs", init)
+        pb.publish(None, remote=str(bare), web_dir=web, maps_src=m, maps_keep=2, maps_web=mweb)
+    ls = lambda: subprocess.run(["git", "--git-dir", str(bare), "ls-tree", "-r", "--name-only", pb.BRANCH],
+                                capture_output=True, text=True, check=True).stdout.split()
+    files = ls()
+    assert "charts/2026111312/ecmwf-ens_2026111312_c1_p1_asia.png" in files            # 統計図が残る
+    assert "maps/output/gefs/2026111400/japan/surf_000.png" in files
+    assert "maps/output/gefs/2026111312/japan/surf_000.png" in files
+    assert "maps/output/gefs/2026111300/japan/surf_000.png" not in files               # keep=2 で古いものは消える
+    assert "maps/index.html" in files and "maps/board/index.html" in files and "maps/output/manifest.json" in files
+    # 画面だけの更新でも maps/output と charts が残る
+    (mweb / "index.html").write_text("maps2", encoding="utf-8")
+    pb.publish(None, remote=str(bare), web_dir=web, maps_web=mweb)
+    files = ls()
+    assert "maps/output/gefs/2026111400/japan/surf_000.png" in files and "charts/2026111312/ecmwf-ens_2026111312_c1_p1_asia.png" in files

@@ -24,6 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BRANCH = "gh-pages"
+MAPS_KEEP = 3                        # 天気図（アンサンブル平均）で残す初期値の数（モデルごと。1初期値約60MB×2モデル）
+ROOT = Path(__file__).resolve().parent
 KEEP_DEFAULT = 8                     # 残す初期値の数（1日2回×4日分。1初期値約7MB）
 # ファイル名: ecmwf-ens_2026111312_c1_p1_asia.png / ..._c2_f168_asia.png / ..._c3high_p2_nh.png
 NAME_RE = re.compile(r"^(?P<model>[a-z0-9-]+)_(?P<init>\d{10})_(?P<chart>c[123](?:high|low)?)_"
@@ -94,6 +96,23 @@ def published_inits(repo: str | None = None, timeout=30):
         return set()
 
 
+def published_map_inits(model: str, repo: str | None = None, timeout=30):
+    """公開サイトの maps/output/manifest.json から、そのモデルの公開済みの初期値の集合を返す。取れなければ空集合。"""
+    import requests
+    repo = repo or os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" not in repo:
+        return set()
+    owner, name = repo.split("/", 1)
+    url = f"https://{owner}.github.io/{name}/maps/output/manifest.json?t={int(datetime.now().timestamp())}"
+    try:
+        r = requests.get(url, timeout=timeout, headers={"Cache-Control": "no-cache"})
+        r.raise_for_status()
+        return {i["init"] for i in r.json().get("models", {}).get(model, {}).get("inits", [])}
+    except Exception as e:
+        print("公開済みの確認に失敗（作る側に倒す）:", e)
+        return set()
+
+
 def _git(cwd, *args, check=True):
     return subprocess.run(["git", *args], cwd=cwd, check=check, capture_output=True, text=True)
 
@@ -108,8 +127,44 @@ def remote_url(remote=None):
     raise SystemExit("公開先が不明です。--remote を指定するか GITHUB_REPOSITORY と GITHUB_TOKEN を設定してください")
 
 
-def publish(src: Path | None, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = None, dry_run=False):
-    """src=None なら画面(web/)だけを差し替える（図は公開ブランチのものをそのまま残す）。"""
+def _maps_list(maps_src):
+    """maps_src（None・1つのPath・Pathのリスト）をリストにそろえる。"""
+    if maps_src is None:
+        return []
+    return [Path(p) for p in (maps_src if isinstance(maps_src, (list, tuple)) else [maps_src])]
+
+
+def _publish_maps(pub: Path, maps_src, maps_keep: int, maps_web: Path | None):
+    """天気図（アンサンブル平均）: maps/ に画面と output/{model}/{init}/ を載せ、manifest を作り直す。"""
+    mroot = pub / "maps"
+    out = mroot / "output"
+    gone = []
+    srcs = _maps_list(maps_src)
+    for src in srcs:
+        model, init = src.parent.name, src.name                      # output/maps/{model}/{init}
+        if not re.fullmatch(r"\d{10}", init):
+            raise SystemExit(f"--maps-src は {{model}}/{{初期値YYYYMMDDHH}} のフォルダにしてください: {src}")
+        dst = out / model / init
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(src, dst)
+        inits = sorted([p for p in (out / model).iterdir() if p.is_dir() and re.fullmatch(r"\d{10}", p.name)],
+                       key=lambda p: p.name, reverse=True)
+        for p in inits[maps_keep:]:
+            shutil.rmtree(p)
+            gone.append(f"{model}/{p.name}")
+    if maps_web and Path(maps_web).exists():                         # 画面（標準版・画用紙版）
+        shutil.copytree(maps_web, mroot, dirs_exist_ok=True)
+    if srcs:                                                         # 図が増減したときだけ manifest を作り直す
+        import maps_manifest
+        maps_manifest.write_manifest(out)
+    return gone
+
+
+def publish(src: Path | None, remote=None, keep=KEEP_DEFAULT, web_dir: Path | None = None, dry_run=False,
+            maps_src: Path | None = None, maps_keep=MAPS_KEEP, maps_web: Path | None = None):
+    """src=None かつ maps_src=None なら画面だけを差し替える（図は公開ブランチのものをそのまま残す）。
+    src: 統計図(charts/) の初期値フォルダ。maps_src: 天気図(maps/output/{model}/{init}) のフォルダ。"""
     pngs, init = [], None
     if src is not None:
         src = Path(src)
@@ -127,21 +182,26 @@ def publish(src: Path | None, remote=None, keep=KEEP_DEFAULT, web_dir: Path | No
         if url:
             r = subprocess.run(["git", "clone", "--depth", "1", "--branch", BRANCH, url, str(pub / "_old")],
                                capture_output=True, text=True)
-            if r.returncode == 0:                      # 既存の公開内容(charts/)を引き継ぐ
-                old = pub / "_old" / "charts"
-                if old.exists():
-                    shutil.copytree(old, pub / "charts")
+            if r.returncode == 0:                      # 既存の公開内容(charts/・maps/output/)を引き継ぐ
+                for rel in ("charts", "maps/output"):
+                    old = pub / "_old" / rel
+                    if old.exists():
+                        shutil.copytree(old, pub / rel)
                 shutil.rmtree(pub / "_old", ignore_errors=True)
         charts = pub / "charts"
         if init:
             (charts / init).mkdir(parents=True, exist_ok=True)
             for f in pngs:
                 shutil.copy2(f, charts / init / f.name)
-        elif not charts.exists():
-            raise SystemExit("--web-only には公開済みの charts/ が必要です（先に図を公開してください）")
-        gone = prune(charts, keep)
-        man = build_manifest(charts, keep)
-        (pub / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
+        elif not charts.exists() and not _maps_list(maps_src) and not (pub / "maps").exists():
+            raise SystemExit("--web-only には公開済みの図が必要です（先に図を公開してください）")
+        if charts.exists():
+            gone = prune(charts, keep)
+            man = build_manifest(charts, keep)
+            (pub / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
+        else:
+            gone, man = [], {"inits": []}
+        gone += _publish_maps(pub, maps_src, maps_keep, maps_web)
         (pub / ".nojekyll").write_text("", encoding="utf-8")
         if web_dir and Path(web_dir).exists():
             for f in Path(web_dir).iterdir():
@@ -158,7 +218,8 @@ def publish(src: Path | None, remote=None, keep=KEEP_DEFAULT, web_dir: Path | No
         _git(pub, "config", "user.name", "github-actions[bot]")
         _git(pub, "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
         _git(pub, "add", "-A")
-        _git(pub, "commit", "-q", "-m", f"公開: {init}" if init else "画面の更新")
+        label = f"公開: {init}" if init else ("天気図: " + ", ".join(f"{p.parent.name}/{p.name}" for p in _maps_list(maps_src)) if maps_src else "画面の更新")
+        _git(pub, "commit", "-q", "-m", label)
         _git(pub, "push", "-q", "--force", url, f"HEAD:{BRANCH}")
         print("反映しました")
         return man
@@ -166,13 +227,17 @@ def publish(src: Path | None, remote=None, keep=KEEP_DEFAULT, web_dir: Path | No
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", help="output/<初期値YYYYMMDDHH> フォルダ（--web-only のときは不要）")
+    ap.add_argument("--src", help="統計図: output/<初期値YYYYMMDDHH> フォルダ")
+    ap.add_argument("--maps-src", action="append", help="天気図: output/maps/<model>/<初期値YYYYMMDDHH> フォルダ（複数指定可）")
+    ap.add_argument("--maps-keep", type=int, default=MAPS_KEEP, help="天気図で残す初期値の数（モデルごと）")
+    ap.add_argument("--maps-web", default=str(ROOT / "maps_web"), help="天気図の画面（maps_web/）")
     ap.add_argument("--web-only", action="store_true", help="画面(web/)だけ差し替える。図は触らない")
     ap.add_argument("--remote", help="公開先URL/パス（省略時は GITHUB_REPOSITORY・GITHUB_TOKEN）")
     ap.add_argument("--keep", type=int, default=KEEP_DEFAULT)
     ap.add_argument("--web", default=str(Path(__file__).resolve().parent / "web"))
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    if not a.web_only and not a.src:
-        ap.error("--src か --web-only のどちらかが必要です")
-    publish(None if a.web_only else Path(a.src), a.remote, a.keep, Path(a.web), a.dry_run)
+    if not a.web_only and not a.src and not a.maps_src:
+        ap.error("--src・--maps-src・--web-only のいずれかが必要です")
+    publish(None if (a.web_only or not a.src) else Path(a.src), a.remote, a.keep, Path(a.web), a.dry_run,
+            [Path(p) for p in a.maps_src] if (a.maps_src and not a.web_only) else None, a.maps_keep, Path(a.maps_web))

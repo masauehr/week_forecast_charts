@@ -37,5 +37,9 @@
 ## 公開サイト
 https://masauehr.github.io/week_to_season_charts/ （初期値・図種・期間・領域を切り替えて閲覧。PNGとmanifestだけを公開。GRIB2は載せない）
 
+## 天気図（標準版・画用紙版）
+https://masauehr.github.io/week_to_season_charts/maps/ （標準版）／ https://masauehr.github.io/week_to_season_charts/maps/board/ （画用紙版）
+ECMWF ENS 平均・GEFS 平均の**アンサンブル平均場から作った天気図**（地上・850hPa×2・700hPa・500hPa・200hPaなど）を、0〜168時間（12時間毎）で閲覧。
+
 ## 状況
 2026-11-14 新規作成。**ECMWF ENS で C1（500hPa高度の平均と偏差）・C2（スパゲッティ）・C3（850hPa気温の偏差と確率）を実装し、GitHub Actions（手動実行）で作図、GitHub Pages で公開済み。** 次は cron-job.org での自動化。

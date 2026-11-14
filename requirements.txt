@@ -6,6 +6,7 @@ cartopy
 shapely
 pyproj
 pygrib
+metpy
 requests
 pillow
 xarray

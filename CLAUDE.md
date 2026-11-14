@@ -31,5 +31,14 @@
 - 定期起動は cron-job.org（[CRON_JOB_ORG.md](CRON_JOB_ORG.md)）。`update.yml` は初期値が空だと「揃っていない／公開済みなら何もしない」。専用トークン `week-to-season-charts-dispatch` の期限は `~/.config/week_to_season_charts/token_expiry` に書き、更新したら書き換える。トークンの値は書かない・貼らない。
 - C3 の確率（±1℃）は温暖化の傾向と平年値の系統差で高温側に偏る。階級確率と混同させない表現を保つ。
 
+## アンサンブル平均の天気図（標準版・画用紙版・2026-11-14）
+- 目的: 週間予報期間（0〜168h・12時間毎）の**アンサンブル平均の天気図**。モデルは ENS（ECMWF ENS 50メンバー平均・`fetch_ens_mean.py`）と GEFS（NOAA の geavg=平均ファイル・`fetch_gefs.py`）。GSM（決定論・ローカル専用）は未実装（実装するときは公開しない。`local_only` の考え方）。
+- 作図は nwp_chart_web の `nwp_charts.py` を `mean_charts.py` にコピーして調整したもの（共通部品化しない）。入力は `F` 辞書（msl/sp/u10/v10/t2/tcc/rr/p[気圧面][gh,t,u,v,r,w]）。**図種ごとの必要な気圧面（CHARTS の levels）が F に無ければ作らない**（`charts_for`）。GEFS の平均には300hPaの気温・湿度が無いので jet300・t300 は ENS のみ。
+- **850hPa は2種に分ける**: `t850`（気温・湿数・風）と `ept850`（相当温位・風）。SSI は描かない。**湿数・EPT はアンサンブル平均場（気温・湿度）から計算**（メンバーごとに計算して平均したものではない）。マニフェストの免責にも明記してある。**平均図は前線・降水・風がなだらかになる（予報そのものではない）旨の表示を外さない**。
+- 画面は nwp_chart_web の `web/` を `maps_web/` にコピーして調整（更新・同期・過去分・断面図は hidden）。画像規則・manifest は nwp_chart_web と同じ（`output/{model}/{init}/{region}/{chart}_{ft:03d}.png`、`maps_manifest.py`）。公開サイトの `maps/` 配下に置く。**localStorage のキーは `wsc_size`・`wscBoard.v1`・`wscBoard.presets.v1`**（同じドメイン masauehr.github.io の nwp_chart_web とキーを共有しない）。
+- 作図: `python mean_pipeline.py --model gefs|ens [--init YYYYMMDDHH]`（1ステップ=1プロセスで 取得→F→全図種×全地域を描画。GRIB2は一時領域に置いて削除）。GEFS は全15時刻で約3分・約60MB。ENS は1ステップ約518秒（手元）／Actions では約1/4の見込み。
+- 公開: Actions `update-maps`（モデルごとに並列に作図 → 成果物 → 公開ジョブが1回のpushでまとめて載せる）。`publish.py --maps-src output/maps/<model>/<init>`（複数可）。天気図は**モデルごとに直近3初期値**を残す（`MAPS_KEEP`。1初期値約60MB）。統計図(`charts/`)と天気図(`maps/output/`)は互いに carry する（片方の更新でもう片方を消さない）。
+- 画面だけ直したら `maps_web/**` を push → `deploy-web` が反映（図は作り直さない）。
+
 ## ドキュメント更新
 変更したら [week-to-season-charts.md](week-to-season-charts.md) と `pc_docs/manuals/automation/week-to-season-charts.md` の**両方**を更新し、`pc_docs/README.md` の表も直す。
