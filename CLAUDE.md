@@ -39,7 +39,7 @@
 - 画面は nwp_chart_web の `web/` を `maps_web/` にコピーして調整（更新・同期・過去分・断面図は hidden）。画像規則・manifest は nwp_chart_web と同じ（`output/{model}/{init}/{region}/{chart}_{ft:03d}.png`、`maps_manifest.py`）。公開サイトの `maps/` 配下に置く。**localStorage のキーは `wsc_size`・`wscBoard.v1`・`wscBoard.presets.v1`**（同じドメイン masauehr.github.io の nwp_chart_web とキーを共有しない）。
 - ローカルで見る: `python serve_local.py`（http://127.0.0.1:8803/ ・/maps/ ・/maps/board/。手元の output/ をそのまま表示。事前に `mean_pipeline.py`・`pipeline.py` で作る）。
 - 作図: `python mean_pipeline.py --model gefs|ens [--init YYYYMMDDHH]`（1ステップ=1プロセスで 取得→F→全図種×全地域を描画。GRIB2は一時領域に置いて削除）。GEFS は全15時刻で約3分・約60MB。ENS は1ステップ約518秒（手元）／Actions では約1/4の見込み。
-- 公開: Actions `update-maps`（モデルごとに並列に作図 → 成果物 → 公開ジョブが1回のpushでまとめて載せる）。`publish.py --maps-src output/maps/<model>/<init>`（複数可）。天気図は**モデルごとに直近3初期値**を残す（`MAPS_KEEP`。1初期値約60MB）。統計図(`charts/`)と天気図(`maps/output/`)は互いに carry する（片方の更新でもう片方を消さない）。
+- 公開: Actions `update-maps`。**モデルごとに「作図→公開」が独立して流れる**（再利用ワークフロー `maps-model.yml` を ens・gefs で別々に呼ぶ。早い GEFS（約5分）は遅い ENS（約30分）を待たずに公開される。公開ジョブだけ `concurrency: publish` で順番待ち＝同時pushの取りこぼしなし）。`publish.py --maps-src output/maps/<model>/<init>`（複数可）。天気図は**モデルごとに直近3初期値**を残す（`MAPS_KEEP`。1初期値約60MB）。統計図(`charts/`)と天気図(`maps/output/`)は互いに carry する（片方の更新でもう片方を消さない）。
 - 画面だけ直したら `maps_web/**` を push → `deploy-web` が反映（図は作り直さない）。
 
 ## ドキュメント更新

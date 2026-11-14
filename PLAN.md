@@ -82,3 +82,7 @@
 - 公開サイトの容量（1初期値）: ENS 約70MB・GEFS 約58MB（jet300追加前）。各モデル直近3初期値で約0.4GB。
 - 週間用のジェットは300hPa主（ユーザー指定）。統計図⇔天気図の相互リンク、ローカル閲覧 `serve_local.py` を追加。
 - 次: cron-job.org に天気図用ジョブ（`update-maps.yml` を `{"ref":"main","inputs":{"model":"all"}}` で起動）を追加。起動時刻は `check_availability.py --report`（ENS・GEFS）の実測後に決める。GSM（決定論・ローカル専用）は未実装。
+
+## 公開の独立化（2026-11-14）
+- 初回の運用で、GEFS（約5分）の公開が ENS（約30分）の作図完了を待たされ、300hPa 対応の GEFS が公開サイトに遅れて出る問題が出た（公開ジョブが全モデルの作図を待つ構成だったため）。
+- `update-maps.yml` を、モデルごとの再利用ワークフロー `maps-model.yml`（build→publish）を ens・gefs で別々に呼ぶ形に変更。公開ジョブは `concurrency: publish`（キュー）で他の公開（update・deploy-web）と順番待ち。

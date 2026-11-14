@@ -76,6 +76,10 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - **週間用のジェットは300hPaが主**（jet300）。GEFS の平均(geavg)には300hPaの気温・湿度が無いので、31メンバーから範囲取得して平均して補う（700hPaの上昇流も同様。1ステップ約24秒）。jet200・t300は東アジアのみ。画用紙版の既定は 300・500高度・700・850・850EPT・地上。
 - 表示が空になったとき: 画面の案内に従う（天気図は `mean_pipeline.py` で作り、`serve_local.py` で起動）。作図が途中で止まっても manifest は書く。
 
+## 天気図の更新の仕組み（Actions）
+- 公開サイトの天気図は、GitHub の Actions タブ → `update-maps` → Run workflow で更新する（モデルは all/ens/gefs、初期値は空で最新）。cron-job.org の定期起動にも使う（初期値が空なら、揃っていない・公開済みは何もしない）。
+- モデルごとに「作図→公開」が独立している。GEFS は約5分、ENS は約30分で、**早い方から先に公開される**。
+
 ## 改修履歴
 | 日付 | 内容 |
 |---|---|
@@ -102,3 +106,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | アンサンブル平均の天気図（標準版・画用紙版）を追加: GEFS(geavg)・ENS平均場・nwp_charts移植・maps_web・update-maps（未実行） |
 | 2026-11-14 | 名称を week_to_season_charts から week_forecast_charts に変更（手元のフォルダのみ）。1か月以上の長期予報は long_range_charts に分離 |
 | 2026-11-14 | 週間用ジェットを300hPa主に(GEFSはメンバー平均で補う)・統計図⇔天気図の相互リンク・ローカル閲覧 serve_local.py・接続リセット対策のリトライ・海岸線データの先読み(並列作図の初回エラー修正)・天気図の初公開(GEFS・ENS) |
+| 2026-11-14 | update-maps をモデルごとに作図→公開が独立する構成に変更（maps-model.yml）。GEFS が ENS の完了を待たされなくなった |
