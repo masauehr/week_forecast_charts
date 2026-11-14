@@ -56,13 +56,13 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 コードは未着手（探索用スクリプトは scratch/）。次は 取得層（並列Range取得）→ ERA5気候値 → C1の最小実装。
 
 ## 公開サイトと運用（2026-11-14）
-- 公開サイト: https://masauehr.github.io/week_to_season_charts/ （GitHub Pages・gh-pages ブランチ。PNGとmanifestだけ。GRIB2は載せない）。画面は初期値・図種（C1/C2/C3高温/C3低温）・期間または時刻・領域（東アジア/北半球）を切り替え、←→で期間・時刻、↑↓で図種を切替。
+- 公開サイト: https://masauehr.github.io/week_forecast_charts/ （GitHub Pages・gh-pages ブランチ。PNGとmanifestだけ。GRIB2は載せない）。画面は初期値・図種（C1/C2/C3高温/C3低温）・期間または時刻・領域（東アジア/北半球）を切り替え、←→で期間・時刻、↑↓で図種を切替。
 - 図の更新: GitHub の Actions タブ → `update` → Run workflow（初期値 YYYYMMDDHH を空にすると最新の揃ったもの）。約8分。
 - 画面だけ直す: web/ を push すると `deploy-web` が自動で反映する。
 - 自動化: cron-job.org から `update` を1日8回起動（00Z用: UTC 8〜11時、12Z用: UTC 20〜23時の各:30。cron-job.orgの入力はJST）。揃っていない・公開済みなら何もせず終わる。設定手順・トークン（期限90日・Slack通知）は [CRON_JOB_ORG.md](CRON_JOB_ORG.md)。配信時刻の実測は launchd の `check_availability.py`（10分おき）で記録し、時刻を見直す。**cron-job.org のジョブ作成とトークン作成はユーザー作業**（準備はコミット済み）。
 
 ## 天気図（アンサンブル平均の標準版・画用紙版）（2026-11-14）
-- 閲覧: 標準版 https://masauehr.github.io/week_to_season_charts/maps/ ／ 画用紙版 https://masauehr.github.io/week_to_season_charts/maps/board/
+- 閲覧: 標準版 https://masauehr.github.io/week_forecast_charts/maps/ ／ 画用紙版 https://masauehr.github.io/week_forecast_charts/maps/board/
 - 内容: ECMWF ENS（50メンバー）と GEFS（NOAA）の**アンサンブル平均場**から、気象庁ビューア風の天気図（地上・850hPa気温湿数風・850hPa相当温位風・700hPa・500hPa・200hPaなど）を 0〜168時間（12時間毎）で表示。nwp_chart_web と同じ操作（時刻のスライダー・再生・2モデル比較・画用紙版は複数の図を並べて移動・拡大縮小）。
 - **850hPa は重ねず2種**（気温・湿数・風 と 相当温位・風）。画用紙版で並べて見る。SSIは描かない。湿数・相当温位は**平均した気温・湿度から計算**（メンバーごとに計算して平均したものではない）。
 - **平均図の読み方**: 各メンバーを平均しているため、前線・低気圧・降水・風の強さは1つの予報よりなだらかになり、先の時刻ほど弱まる。予報そのものではない。
@@ -114,7 +114,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - C3: 850hPa気温の平年偏差（アンサンブル平均）と、偏差が +1℃以上（低温側は −1℃以下）となるメンバーの割合。850hPaが地面より下の領域はマスク。
 - 注意: C3 の確率は高温側に偏って見えやすい（温暖化の傾向・平年値との系統差）。気象庁の階級確率とは別物。
 | 2026-11-14 | C2（スパゲッティ図）・C3（T850偏差と確率）・逐次集計パイプライン pipeline.py を追加し、通し実行（18枚・約34分）で保存データ版と一致を確認 |
-| 2026-11-14 | 閲覧画面(web/)・GitHub Actions(update 手動実行約8分・deploy-web)・GitHub Pages 公開（https://masauehr.github.io/week_to_season_charts/）を追加 |
+| 2026-11-14 | 閲覧画面(web/)・GitHub Actions(update 手動実行約8分・deploy-web)・GitHub Pages 公開（https://masauehr.github.io/week_forecast_charts/）を追加 |
 | 2026-11-14 | 自動化の下地（配信時刻の実測 check_availability.py・公開済みスキップ・トークン期限通知・CRON_JOB_ORG.md）を追加。気象庁の有料配信は契約しない決定を記録 |
 | 2026-11-14 | アンサンブル平均の天気図（標準版・画用紙版）を追加: GEFS(geavg)・ENS平均場・nwp_charts移植・maps_web・update-maps（未実行） |
 | 2026-11-14 | 名称を week_to_season_charts から week_forecast_charts に変更（手元のフォルダのみ）。1か月以上の長期予報は long_range_charts に分離 |
@@ -123,3 +123,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | 統計図の画面に、並べて表示（別の図／別の初期値の比較）と画像の大きさ選択・保存リンクを追加（天気図の標準版と同様） |
 | 2026-11-14 | 統計図のメニューをコンパクト化（期間・領域・表示を1行にまとめて、行数を6行から3行（並べて表示のときは4行）へ。ボタン・余白も縮小） |
 | 2026-11-14 | 気象庁GSM（決定論・ローカル専用）を追加: fetch_gsm.py・mean_pipeline --model gsm・公開除外の4重防御 |
+| 2026-11-14 | GitHub のリポジトリ名を week_to_season_charts → week_forecast_charts に変更（公開サイトURLも変更・旧URLは404）。天気図用 cron-job.org ジョブ（update-maps・暫定・:45）の手順を CRON_JOB_ORG.md 6節に追加 |

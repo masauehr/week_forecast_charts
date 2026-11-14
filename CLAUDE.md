@@ -2,7 +2,7 @@
 
 ## 概要
 週間予報・2週間気温予報（〜15日先）の判断に使う天気図（アンサンブル統計・平年偏差・確率・アンサンブル平均の天気図）を作る。
-**1か月以上の長期予報はこのプロジェクトでは扱わない**（2026-11-14 に `../long_range_charts` へ移した）。旧名は week_to_season_charts で、**GitHub のリポジトリ名・公開サイトの URL・cron-job.org のジョブ URL・トークン名 `week-to-season-charts-dispatch` は旧名のまま**（リポジトリ名の変更は後で行う予定。変更するときは cron-job.org の URL 2つと各ガイドを直す）。
+**1か月以上の長期予報はこのプロジェクトでは扱わない**（2026-11-14 に `../long_range_charts` へ移した）。旧名は week_to_season_charts。**GitHub のリポジトリ名・公開サイトURLは 2026-11-14 に week_forecast_charts へ変更済み**（旧URLは404）。**トークン名 `week-to-season-charts-dispatch` は旧名のまま**（トークンは名前ではなくリポジトリに紐づくので有効）。cron-job.org のジョブURLは新名に直す（CRON_JOB_ORG.md の4・6節）。
 マニュアルは [week-forecast-charts.md](week-forecast-charts.md)、設計は [DESIGN.md](DESIGN.md)、図種は [CHARTS.md](CHARTS.md)、データ源は [DATA_SOURCES.md](DATA_SOURCES.md)、計画は [PLAN.md](PLAN.md)。
 
 ## 実行環境
@@ -21,7 +21,7 @@
 - push は毎回ユーザー確認が必要。
 
 ## 公開の仕組み（gh-pages ブランチ方式・2026-11-14）
-- 公開先は https://masauehr.github.io/week_to_season_charts/ 。**PNG・manifest.json・画面(web/)だけ**を載せる。GRIB2・平年値は載せない（`publish.py`）。
+- 公開先は https://masauehr.github.io/week_forecast_charts/ 。**PNG・manifest.json・画面(web/)だけ**を載せる。GRIB2・平年値は載せない（`publish.py`）。
 - 図の更新は `.github/workflows/update.yml`（手動実行。初期値を指定可）→ `pipeline.py`（取得→期間平均に足し込む→GRIB2即削除→作図）→ `publish.py --src output/<初期値>`。約8分。
 - 画面(web/)だけ直したら push すれば `deploy-web.yml` が数十秒で反映（`publish.py --web-only`。図は作り直さない）。
 - 公開は履歴を溜めない単一の孤立コミットを force push する。update と deploy-web は同じ `concurrency: publish` を共有（競合させない）。公開ブランチを直接編集しない。

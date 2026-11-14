@@ -36,10 +36,10 @@
 | [week-forecast-charts.md](week-forecast-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
 
 ## 公開サイト
-https://masauehr.github.io/week_to_season_charts/ （初期値・図種・期間・領域を切り替えて閲覧。PNGとmanifestだけを公開。GRIB2は載せない）
+https://masauehr.github.io/week_forecast_charts/ （初期値・図種・期間・領域を切り替えて閲覧。PNGとmanifestだけを公開。GRIB2は載せない）
 
 ## 天気図（標準版・画用紙版）
-https://masauehr.github.io/week_to_season_charts/maps/ （標準版）／ https://masauehr.github.io/week_to_season_charts/maps/board/ （画用紙版）
+https://masauehr.github.io/week_forecast_charts/maps/ （標準版）／ https://masauehr.github.io/week_forecast_charts/maps/board/ （画用紙版）
 ECMWF ENS 平均・GEFS 平均の**アンサンブル平均場から作った天気図**（地上・850hPa×2・700hPa・500hPa・200hPaなど）を、0〜168時間（12時間毎）で閲覧。
 
 ## 状況

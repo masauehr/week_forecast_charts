@@ -5,12 +5,12 @@
 ## 0. 概要
 ```
 cron-job.org（決めた時刻に）
-  → POST https://api.github.com/repos/masauehr/week_to_season_charts/actions/workflows/update.yml/dispatches
+  → POST https://api.github.com/repos/masauehr/week_forecast_charts/actions/workflows/update.yml/dispatches
        （専用トークンで認証。本文 {"ref":"main"}）
   → GitHub Actions の update が起動
        最新の揃った初期値を探す → 揃っていない／すでに公開済みなら何もせず終了（冪等）
        揃っていれば 取得→作図→gh-pages へ公開（約8分）
-  → https://masauehr.github.io/week_to_season_charts/ が更新される
+  → https://masauehr.github.io/week_forecast_charts/ が更新される
 ```
 - cron-job.org は「時刻になったら合図を送る」だけ。作図は GitHub Actions が行う。Mac には依存しない。
 - **何度呼んでも安全**: 初期値の指定が空の起動は `pipeline.py --skip-if-published` で、揃っていない回・公開済みの回は数十秒で終わる。だから起動を多めに設定できる。
@@ -40,7 +40,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_foreca
 1. GitHub → 右上アイコン → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
 2. Token name: `week-to-season-charts-dispatch`
 3. Expiration: **90 days**（最大でも期限付き）
-4. Repository access: **Only select repositories** → `masauehr/week_to_season_charts` だけ
+4. Repository access: **Only select repositories** → `masauehr/week_forecast_charts` だけ
 5. Permissions → Repository permissions → **Actions: Read and write**（それ以外は付けない。Metadata: Read-only は自動）
 6. Generate token → 表示された値を**このとき1回だけ**コピー（チャット・ファイル・リポジトリには書かない）。期限の日時も控える
 
@@ -61,7 +61,7 @@ GitHub の Fine-grained tokens で `week-to-season-charts-dispatch` を Regenera
 ## 4. cron-job.org のジョブ設定
 1. https://cron-job.org でアカウント作成（無料）→ ログイン → **CREATE CRONJOB**
 2. Title: `week_forecast_charts update`
-3. URL: `https://api.github.com/repos/masauehr/week_to_season_charts/actions/workflows/update.yml/dispatches`
+3. URL: `https://api.github.com/repos/masauehr/week_forecast_charts/actions/workflows/update.yml/dispatches`
 4. Execution schedule: **User-defined**。分=30、時=1節の表の JST の時（17,18,19,20,5,6,7,8）、日・月・曜日=すべて。Time zone は Asia/Tokyo
 5. Advanced → Request method: **POST**、Request body: `{"ref":"main"}`
 6. Advanced → Headers（4つ）:
@@ -77,3 +77,30 @@ GitHub の Fine-grained tokens で `week-to-season-charts-dispatch` を Regenera
 - 動作確認: GitHub の Actions → `update` の履歴。公開済みの回は「すでに公開済みのため何もしません」、新しい初期値の回は約8分で公開まで進む。
 - 公開されない: 初期値が揃っていない（`check_availability.py --report`）／トークン期限切れ（401）／cron-job.org のジョブが失敗続きで自動無効化されていないか。
 - 手動で作る: GitHub の Actions → update → Run workflow（初期値を指定すれば公開済みでも作り直す）。
+
+## 6. 天気図用ジョブ（update-maps・暫定・2026-11-14）
+アンサンブル平均の天気図（標準版・画用紙版）を更新するジョブ。統計図（4節）とは**別のジョブ**を作る。
+
+### 6-1. 起動時刻（暫定）
+- GEFS は 168h が初期値から**約5.0時間後**に揃う（実測1件: 2026-11-14 00Z で 5.03h）。ENS は天気図に必要な 168h まで（360hではない）。ENS の実測は未了で、統計図と同じく約8〜11時間後と想定する。
+- 1回の起動で GEFS と ENS の両方を流す（`model` を省略＝`all`）。揃っていないモデルは何もせず終了し、次の起動で拾う（冪等）。
+- 統計図と重ならないよう**分は :45**にする（公開だけは `concurrency: publish` で順番待ちになるので、重なっても取りこぼしはしない）。
+
+| 狙い | UTC（各時の :45） | cron-job.org に入力する時（JST） |
+|---|---|---|
+| 00Z 初期値 | 8, 9, 10, 11 時 | **17, 18, 19, 20 時** |
+| 12Z 初期値 | 20, 21, 22, 23 時 | **5, 6, 7, 8 時** |
+
+実測がたまったら `python check_availability.py --report` で見直す（早く揃うなら遅い時刻を減らす）。
+
+### 6-2. 設定（4節との違いだけ）
+1. Title: `week_forecast_charts update-maps`
+2. URL: `https://api.github.com/repos/masauehr/week_forecast_charts/actions/workflows/update-maps.yml/dispatches`
+3. Execution schedule: User-defined。分=45、時=上表の JST の時（17,18,19,20,5,6,7,8）。Time zone は Asia/Tokyo
+4. Request method: POST、Request body: `{"ref":"main"}`、ヘッダー4つと通知は4節と同じ（**同じトークンを使える**）
+5. Test run で `204 No Content` を確認 → GitHub の Actions に `update-maps` が起動すれば成功
+
+### 6-3. 所要時間と確認
+- GEFS は build 約5分＋publish 約1分、ENS は build 約30分＋publish 約1分。公開はモデルごとに独立（早い GEFS が先に出る）。
+- GSM はローカル専用なので、このジョブには含まれない（`update-maps.yml` は ens/gefs のみ）。
+- 確認: 公開マニフェスト https://masauehr.github.io/week_forecast_charts/maps/output/manifest.json にモデルごとの初期値が出る（gsm が出ていないこと）。
