@@ -4,7 +4,7 @@
 
 ## 目的
 週間天気予報（〜7日）・2週間気温予報（〜15日先）の**判断に使う天気図**を作る。
-**1か月以上の長期予報は別プロジェクト [long_range_charts](../long_range_charts/) に移した**（2026-11-14。旧名 week_to_season_charts から名称変更。GitHub のリポジトリ名・公開サイトの URL は旧名 `week_to_season_charts` のまま）。
+**1か月以上の長期予報は別プロジェクト [long_range_charts](../long_range_charts/) に移した**（2026-11-14。旧名 week_to_season_charts から名称変更。GitHub のリポジトリ名・公開サイトの URL も新名に変更済み）。
 通常の「ある1時刻の予報図」（nwp_chart_web）ではなく、**アンサンブル予報の統計（平均・ばらつき・確率）と平年からの偏差**を主役にした図を扱う。
 
 ## 通常の天気図との違い
@@ -40,7 +40,7 @@ https://masauehr.github.io/week_forecast_charts/ （初期値・図種・期間�
 
 ## 天気図（標準版・画用紙版）
 https://masauehr.github.io/week_forecast_charts/maps/ （標準版）／ https://masauehr.github.io/week_forecast_charts/maps/board/ （画用紙版）
-ECMWF ENS 平均・GEFS 平均の**アンサンブル平均場から作った天気図**（地上・850hPa×2・700hPa・500hPa・200hPaなど）を、0〜168時間（12時間毎）で閲覧。
+ECMWF ENS 平均・GEFS 平均の**アンサンブル平均場から作った天気図**（地上・850hPa×2・700hPa・500hPa・300/200hPaなど）を、0〜168時間（12時間毎）で閲覧。気象庁 GSM（決定論）の図はローカル専用で、公開しない（`python serve_local.py` で手元だけで比較できる）。
 
 ## 状況
-2026-11-14 新規作成。**ECMWF ENS で C1（500hPa高度の平均と偏差）・C2（スパゲッティ）・C3（850hPa気温の偏差と確率）を実装し、GitHub Actions（手動実行）で作図、GitHub Pages で公開済み。** 次は cron-job.org での自動化。
+2026-11-14 新規作成。**統計図（C1・C2・C3）と天気図（ENS・GEFS の標準版・画用紙版）を GitHub Actions で作図し、GitHub Pages で公開済み。cron-job.org が1日8回ずつ起動（統計図 :30・天気図 :45）。** GSM（決定論）はローカル専用で実装済み。残りは ENS の配信時刻の実測にもとづく起動時刻の見直し。

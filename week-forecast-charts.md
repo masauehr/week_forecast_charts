@@ -44,7 +44,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 取得 | HTTP＋索引のバイト範囲 | 届いたファイルを受信フォルダから読む | **別実装** |
 | 読込 | pygrib | pygrib（全球1.25°・日本域0.375°） | 共通（変数対応表だけ別） |
 | 統計 | 平均・スプレッド・確率を自前計算 | 同じ | 共通 |
-| 偏差 | ERA5気候値 | ERA5のままか気象庁気候値に差し替え | 基準だけ選択 |
+| 偏差 | NCEP/NCAR 再解析の日別長期平均 1991–2020（当初案のERA5は見送り） | 同じ基準のまま、または気象庁気候値に差し替え | 基準だけ選択 |
 | 描画 | 図種ごとの関数 | 同じ | 共通 |
 
 設計の約束: 取得層は「モデル名→メンバー配列を返す」関数に閉じ込め、統計以降はモデルを知らない。
@@ -53,21 +53,21 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 メンバーごとに順番のRange取得は171秒、並列10で23秒、並列25で14秒。待ち時間が支配的なので並列化が必須（ただし配信側の同時接続上限があるため10〜16程度に抑える）。
 
 ## 現状と次の一手
-コードは未着手（探索用スクリプトは scratch/）。次は 取得層（並列Range取得）→ ERA5気候値 → C1の最小実装。
+統計図（C1〜C3）・天気図（ENS・GEFS の標準版・画用紙版）・GSM（ローカル専用）は実装・公開済みで、cron-job.org から自動更新している。残りは ENS の配信時刻の実測（`check_availability.py --report`）にもとづく起動時刻の見直し。
 
 ## 公開サイトと運用（2026-11-14）
 - 公開サイト: https://masauehr.github.io/week_forecast_charts/ （GitHub Pages・gh-pages ブランチ。PNGとmanifestだけ。GRIB2は載せない）。画面は初期値・図種（C1/C2/C3高温/C3低温）・期間または時刻・領域（東アジア/北半球）を切り替え、←→で期間・時刻、↑↓で図種を切替。
 - 図の更新: GitHub の Actions タブ → `update` → Run workflow（初期値 YYYYMMDDHH を空にすると最新の揃ったもの）。約8分。
 - 画面だけ直す: web/ を push すると `deploy-web` が自動で反映する。
-- 自動化: cron-job.org から `update` を1日8回起動（00Z用: UTC 8〜11時、12Z用: UTC 20〜23時の各:30。cron-job.orgの入力はJST）。揃っていない・公開済みなら何もせず終わる。設定手順・トークン（期限90日・Slack通知）は [CRON_JOB_ORG.md](CRON_JOB_ORG.md)。配信時刻の実測は launchd の `check_availability.py`（10分おき）で記録し、時刻を見直す。**cron-job.org のジョブ作成とトークン作成はユーザー作業**（準備はコミット済み）。
+- 自動化: cron-job.org から `update` を1日8回起動（00Z用: UTC 8〜11時、12Z用: UTC 20〜23時の各:30。cron-job.orgの入力はJST）。揃っていない・公開済みなら何もせず終わる。設定手順・トークン（期限90日・Slack通知）は [CRON_JOB_ORG.md](CRON_JOB_ORG.md)。配信時刻の実測は launchd の `check_availability.py`（10分おき）で記録し、時刻を見直す。cron-job.org のジョブ（統計図 `update` :30・天気図 `update-maps` :45）とトークンは設定済み（トークン期限 2027-02-12、期限通知は launchd）。
 
 ## 天気図（アンサンブル平均の標準版・画用紙版）（2026-11-14）
 - 閲覧: 標準版 https://masauehr.github.io/week_forecast_charts/maps/ ／ 画用紙版 https://masauehr.github.io/week_forecast_charts/maps/board/
 - 内容: ECMWF ENS（50メンバー）と GEFS（NOAA）の**アンサンブル平均場**から、気象庁ビューア風の天気図（地上・850hPa気温湿数風・850hPa相当温位風・700hPa・500hPa・200hPaなど）を 0〜168時間（12時間毎）で表示。nwp_chart_web と同じ操作（時刻のスライダー・再生・2モデル比較・画用紙版は複数の図を並べて移動・拡大縮小）。
 - **850hPa は重ねず2種**（気温・湿数・風 と 相当温位・風）。画用紙版で並べて見る。SSIは描かない。湿数・相当温位は**平均した気温・湿度から計算**（メンバーごとに計算して平均したものではない）。
 - **平均図の読み方**: 各メンバーを平均しているため、前線・低気圧・降水・風の強さは1つの予報よりなだらかになり、先の時刻ほど弱まる。予報そのものではない。
-- GEFS には300hPaの気温・湿度が平均に無いので 300hPa の図は ENS のみ。700hPaの上昇流は GEFS では各メンバーの平均。
-- 作る: `python mean_pipeline.py --model gefs`（約3分）／`--model ens`（Actionsで実行を想定）。公開は Actions の `update-maps`（手動実行）。
+- GEFS の平均(geavg)には300hPaの気温・湿度と700hPaの上昇流が無いので、各メンバー(pgrb2b)から範囲取得して平均して補う（300hPaの図も GEFS で作れる）。
+- 作る: `python mean_pipeline.py --model gefs`（約3分）／`--model ens`（手元で1ステップ約518秒。通常は Actions で実行）。公開は Actions の `update-maps`（手動実行または cron-job.org）。
 - GSM（決定論・ローカル専用）は実装済み（下の節）。
 
 ## ローカルで見る・相互リンク・ジェット（2026-11-14）
