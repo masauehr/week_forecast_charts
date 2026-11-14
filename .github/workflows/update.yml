@@ -4,7 +4,8 @@ name: update
 #  - GRIB2 は1ステップずつ取得して即削除する（pipeline.py）。所要は約35〜40分
 #  - 公開は履歴を溜めない単一の孤立コミット（publish.py）。GRIB2・平年値は載せない
 #  - 画面(web/)があれば publish.py が一緒に載せる
-# 自動化(cron-job.org)は画面ができてから。今は workflow_dispatch のみ。
+# 起動: 手動、または cron-job.org の workflow_dispatch（CRON_JOB_ORG.md）。初期値が空なら最新の揃ったものを作り、
+#       揃っていない・すでに公開済みなら何もせず終わる（多めに起動しても安全＝冪等）。
 on:
   workflow_dispatch:
     inputs:
@@ -65,12 +66,17 @@ jobs:
           if [ -n "$INIT" ]; then
             python pipeline.py --init "$INIT" --out output
           else
-            python pipeline.py --out output
+            # 初期値の指定が無い（cron-job.org の定期起動）ときは、揃っていない・公開済みなら何もしない
+            python pipeline.py --out output --skip-if-published
           fi
 
       - name: 公開ブランチへ反映
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          latest=$(ls -d output/??????????/ | sort | tail -1)
-          python publish.py --src "${latest%/}"
+          latest=$(ls -d output/??????????/ 2>/dev/null | sort | tail -1)
+          if [ -z "$latest" ]; then
+            echo "作成した図がない（揃っていない／公開済み）ため公開しません"
+          else
+            python publish.py --src "${latest%/}"
+          fi

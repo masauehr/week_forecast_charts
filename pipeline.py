@@ -116,11 +116,18 @@ if __name__ == "__main__":
     ap.add_argument("--regions", nargs="+", default=["asia", "nh"], choices=list(charts.REGIONS))
     ap.add_argument("--out", default=str(mc.OUT_DIR))
     ap.add_argument("--workers", type=int, default=fe.WORKERS)
+    ap.add_argument("--skip-if-published", action="store_true",
+                    help="その初期値がすでに公開サイトにあれば何も作らず終了（cron-job.org の多めの起動用）")
     a = ap.parse_args()
     init = fe.parse_init(a.init) if a.init else fe.find_latest_complete()
     if init is None:
         raise SystemExit("揃った初期値が見つかりません")
     print("初期値:", init, flush=True)
+    if a.skip_if_published:
+        import publish
+        if f"{init:%Y%m%d%H}" in publish.published_inits():
+            print("すでに公開済みのため何もしません")
+            raise SystemExit(0)
     t0 = time.time()
     out_dir = Path(a.out) / f"{init:%Y%m%d%H}"          # output/<初期値>/ にまとめる（publish.py の入力）
     files = run(init, a.regions, out_dir, workers=a.workers)

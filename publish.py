@@ -73,6 +73,27 @@ def prune(charts_dir: Path, keep: int = KEEP_DEFAULT):
     return gone
 
 
+def published_inits(repo: str | None = None, timeout=30):
+    """公開サイト(Pages)の manifest.json から、公開済みの初期値(YYYYMMDDHH)の集合を返す。取れなければ空集合。
+
+    cron-job.org の起動で「すでに公開済みなら何もしない」ための判定に使う。Pages のキャッシュで最大数分遅れるが、
+    二重に作っても結果は同じ（冪等）。
+    """
+    import requests
+    repo = repo or os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" not in repo:
+        return set()
+    owner, name = repo.split("/", 1)
+    url = f"https://{owner}.github.io/{name}/manifest.json?t={int(datetime.now().timestamp())}"
+    try:
+        r = requests.get(url, timeout=timeout, headers={"Cache-Control": "no-cache"})
+        r.raise_for_status()
+        return {i["init"] for i in r.json().get("inits", [])}
+    except Exception as e:                       # 取れなければ作る側に倒す（安全側）
+        print("公開済みの確認に失敗（作る側に倒す）:", e)
+        return set()
+
+
 def _git(cwd, *args, check=True):
     return subprocess.run(["git", *args], cwd=cwd, check=check, capture_output=True, text=True)
 
