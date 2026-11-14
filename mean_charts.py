@@ -457,8 +457,8 @@ CHARTS = {
     # 並びは 高層→地上（画面のタブ・manifestの図種順はこの順）。追加するときも高度順の位置に入れる
     # levels: 必要な気圧面（F["p"] に全部あるときだけ作る）。regions: 作る地域を限る（容量のため。省略=全地域）
     "jet300": dict(label="300hPa（ジェット・気温・風）", fn=chart_jet300, levels=[300]),
-    "jet200": dict(label="200hPa（ジェット・気温・風）", fn=chart_jet200, levels=[200], regions=("asia",)),   # 週間用のジェットは300hPaが主。200hPaは東アジアだけ（容量）
-    "t300": dict(label="300hPa（気温・湿数・風）", fn=chart_t300, levels=[300], regions=("asia",)),
+    "jet200": dict(label="200hPa（ジェット・気温・風）", fn=chart_jet200, levels=[200], regions=("japan", "asia")),   # 週間用のジェットは300hPaが主。200hPaは日本周辺・東アジア
+    "t300": dict(label="300hPa（気温・湿数・風）", fn=chart_t300, levels=[300], regions=("japan", "asia")),
     "z500": dict(label="500hPa（高度・渦度）", fn=chart_z500, levels=[500]),
     "t500": dict(label="500hPa（気温・湿数・風）", fn=chart_t500, levels=[500]),
     "t700": dict(label="700hPa（上昇流・気温・湿数）", fn=chart_t700, levels=[700]),
