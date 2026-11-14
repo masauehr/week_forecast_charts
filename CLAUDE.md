@@ -19,5 +19,15 @@
 - 公開（GitHub Pages等）する場合は容量（Pages 1GB目安）を先に見積もる。
 - push は毎回ユーザー確認が必要。
 
+## 公開の仕組み（gh-pages ブランチ方式・2026-11-14）
+- 公開先は https://masauehr.github.io/week_to_season_charts/ 。**PNG・manifest.json・画面(web/)だけ**を載せる。GRIB2・平年値は載せない（`publish.py`）。
+- 図の更新は `.github/workflows/update.yml`（手動実行。初期値を指定可）→ `pipeline.py`（取得→期間平均に足し込む→GRIB2即削除→作図）→ `publish.py --src output/<初期値>`。約8分。
+- 画面(web/)だけ直したら push すれば `deploy-web.yml` が数十秒で反映（`publish.py --web-only`。図は作り直さない）。
+- 公開は履歴を溜めない単一の孤立コミットを force push する。update と deploy-web は同じ `concurrency: publish` を共有（競合させない）。公開ブランチを直接編集しない。
+- 公開する初期値は直近8個（`publish.KEEP_DEFAULT`。1初期値約7MB）。manifest の形を変えたら `web/app.js` も直す。
+- CIの日本語フォントは Noto Sans CJK JP（`charts.py` のフォント指定とワークフローの apt を揃える）。平年値は軽量版 `data/clim/clim_compact.npz` を Actions キャッシュ（`climatology.py --prepare`）。
+- 図のファイル名: `ecmwf-ens_{初期値}_{c1|c2|c3high|c3low}_{p期間|f時間}_{asia|nh}.png`（`publish.parse_name` が読む）。
+- C3 の確率（±1℃）は温暖化の傾向と平年値の系統差で高温側に偏る。階級確率と混同させない表現を保つ。
+
 ## ドキュメント更新
 変更したら [week-to-season-charts.md](week-to-season-charts.md) と `pc_docs/manuals/automation/week-to-season-charts.md` の**両方**を更新し、`pc_docs/README.md` の表も直す。

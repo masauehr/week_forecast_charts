@@ -33,5 +33,8 @@
 | [PLAN.md](PLAN.md) | フェーズ計画・未決事項・進捗 |
 | [week-to-season-charts.md](week-to-season-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
 
+## 公開サイト
+https://masauehr.github.io/week_to_season_charts/ （初期値・図種・期間・領域を切り替えて閲覧。PNGとmanifestだけを公開。GRIB2は載せない）
+
 ## 状況
-2026-11-14 新規作成。**Phase 0（計画・調査）のみ。コードは未着手。**
+2026-11-14 新規作成。**ECMWF ENS で C1（500hPa高度の平均と偏差）・C2（スパゲッティ）・C3（850hPa気温の偏差と確率）を実装し、GitHub Actions（手動実行）で作図、GitHub Pages で公開済み。** 次は cron-job.org での自動化。

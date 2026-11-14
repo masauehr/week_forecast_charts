@@ -74,3 +74,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - C3: 850hPa気温の平年偏差（アンサンブル平均）と、偏差が +1℃以上（低温側は −1℃以下）となるメンバーの割合。850hPaが地面より下の領域はマスク。
 - 注意: C3 の確率は高温側に偏って見えやすい（温暖化の傾向・平年値との系統差）。気象庁の階級確率とは別物。
 | 2026-11-14 | C2（スパゲッティ図）・C3（T850偏差と確率）・逐次集計パイプライン pipeline.py を追加し、通し実行（18枚・約34分）で保存データ版と一致を確認 |
+| 2026-11-14 | 閲覧画面(web/)・GitHub Actions(update 手動実行約8分・deploy-web)・GitHub Pages 公開（https://masauehr.github.io/week_to_season_charts/）を追加 |
