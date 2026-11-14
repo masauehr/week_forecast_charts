@@ -1,4 +1,5 @@
-// 週間〜長期予報用 天気図ビューア（Vanilla JS）。manifest.json を読んで、初期値・図種・期間・領域を切り替える。
+// 週間〜2週間予報用 統計図ビューア（Vanilla JS）。manifest.json を読んで、初期値・図種・期間・領域を切り替える。
+// 天気図の標準版（maps/）と同様に、「並べて表示」（別の図を並べる／別の初期値と比較）と「画像の大きさ」を選べる。
 "use strict";
 
 const CHARTS = {
@@ -18,9 +19,13 @@ const CHARTS = {
 const CHART_ORDER = ["c1", "c2", "c3high", "c3low"];
 const PERIOD_LABEL = { 1: "予報1〜7日目", 2: "予報8〜14日目" };
 const REGION_LABEL = { asia: "東アジア", nh: "北半球" };
+const SIZES = [["fit", "画面に収める"], ["wide", "幅いっぱい"], ["80", "80%"], ["60", "60%"], ["40", "40%"]];
+const SIDE_MODES = [["chart", "別の図を並べる"], ["init", "別の初期値と比較"]];
 
 let M = null;                // manifest
-const S = { init: null, chart: "c1", sel: null, region: "asia" };
+// 左の図 = S 自身（init/chart/sel/region）。右の図 = S.p2（side=chart: 自由に選ぶ／side=init: 初期値だけ選び、他は左に揃える）
+const S = { init: null, chart: "c1", sel: null, region: "asia", size: "fit", side: "off", mode: "chart",
+            p2: { init: null, chart: null, sel: null, region: null } };
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,43 +37,69 @@ function validText(init, h) {
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${p(d.getUTCHours())}UTC`;
 }
-function selLabel(chart, v) {
+function selLabel(init, chart, v) {
   if (CHARTS[chart].kind === "period") return PERIOD_LABEL[v] || `期間${v}`;
-  return `${v}時間後（${validText(S.init, v)}）`;
+  return `${v}時間後（${validText(init, v)}）`;
 }
 
-function initFiles() {
-  const it = M.inits.find((x) => x.init === S.init);
-  return it ? it.files : [];
+// ---------------------------------------------------------------- 選べる値（初期値ごと）
+const filesOf = (init) => { const it = M.inits.find((x) => x.init === init); return it ? it.files : []; };
+const chartsFor = (init) => CHART_ORDER.filter((c) => filesOf(init).some((f) => f.chart === c));
+const selsFor = (init, chart) => [...new Set(filesOf(init).filter((f) => f.chart === chart).map((f) => f.value))].sort((a, b) => a - b);
+const regionsFor = (init, chart, sel) => [...new Set(filesOf(init).filter((f) => f.chart === chart && f.value === sel).map((f) => f.region))];
+const findFile = (P) => filesOf(P.init).find((x) => x.chart === P.chart && x.value === P.sel && x.region === P.region);
+
+// 選択が存在しなければ、近い有効な値へ直す（パネル P = {init, chart, sel, region}）
+function fixPanel(P) {
+  if (!M.inits.some((x) => x.init === P.init)) P.init = M.inits[0].init;
+  const cs = chartsFor(P.init);
+  if (!cs.includes(P.chart)) P.chart = cs[0];
+  const ss = selsFor(P.init, P.chart);
+  if (!ss.includes(P.sel)) P.sel = ss[0];
+  const rs = regionsFor(P.init, P.chart, P.sel);
+  if (!rs.includes(P.region)) P.region = rs[0];
 }
-function selsFor(chart) {
-  return [...new Set(initFiles().filter((f) => f.chart === chart).map((f) => f.value))].sort((a, b) => a - b);
-}
-function regionsFor(chart, sel) {
-  return [...new Set(initFiles().filter((f) => f.chart === chart && f.value === sel).map((f) => f.region))];
+const olderInit = (init) => { const l = M.inits.map((x) => x.init); const i = l.indexOf(init); return l[i + 1] || l[i - 1] || init; };
+
+// 右の図を決める（side=init は左に揃えて初期値だけ変える／side=chart は p2 の選択をそのまま使う）
+function rightPanel() {
+  if (S.side === "off") return null;
+  if (!S.p2.init || !M.inits.some((x) => x.init === S.p2.init)) S.p2.init = S.side === "init" ? olderInit(S.init) : S.init;
+  if (S.side === "init") return { init: S.p2.init, chart: S.chart, sel: S.sel, region: S.region };
+  if (!S.p2.chart) {                      // 初めて開くときは、左と違う図種を選んでおく
+    const cs = chartsFor(S.p2.init);
+    S.p2.chart = cs[(cs.indexOf(S.chart) + 1) % cs.length];
+    S.p2.region = S.region;
+  }
+  fixPanel(S.p2);
+  return S.p2;
 }
 
+// ---------------------------------------------------------------- URL
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   if (p.get("init")) S.init = p.get("init");
   if (p.get("chart") in CHARTS) S.chart = p.get("chart");
   if (p.get("sel")) S.sel = +p.get("sel");
   if (p.get("region")) S.region = p.get("region");
+  if (SIZES.some(([v]) => v === p.get("size"))) S.size = p.get("size");
+  if (p.get("side") === "chart" || p.get("side") === "init") { S.side = p.get("side"); S.mode = S.side; } else if (p.has("init")) S.side = "off";
+  if (p.get("init2")) S.p2.init = p.get("init2");
+  if (p.get("chart2") in CHARTS) S.p2.chart = p.get("chart2");
+  if (p.get("sel2")) S.p2.sel = +p.get("sel2");
+  if (p.get("region2")) S.p2.region = p.get("region2");
 }
 function writeHash() {
-  history.replaceState(null, "", "#" + new URLSearchParams(
-    { init: S.init, chart: S.chart, sel: S.sel, region: S.region }).toString());
+  const q = { init: S.init, chart: S.chart, sel: S.sel, region: S.region, size: S.size };
+  if (S.side !== "off") {
+    q.side = S.side;
+    q.init2 = S.p2.init;
+    if (S.side === "chart") Object.assign(q, { chart2: S.p2.chart, sel2: S.p2.sel, region2: S.p2.region });
+  }
+  history.replaceState(null, "", "#" + new URLSearchParams(q).toString());
 }
 
-// 選択が今の初期値・図種に存在しなければ、近い有効な値へ直す
-function normalize() {
-  if (!M.inits.some((x) => x.init === S.init)) S.init = M.inits[0].init;
-  const sels = selsFor(S.chart);
-  if (!sels.includes(S.sel)) S.sel = sels[0];
-  const regs = regionsFor(S.chart, S.sel);
-  if (!regs.includes(S.region)) S.region = regs[0];
-}
-
+// ---------------------------------------------------------------- 部品
 function seg(el, items, current, onPick) {
   el.replaceChildren();
   for (const [val, text] of items) {
@@ -80,31 +111,75 @@ function seg(el, items, current, onPick) {
     el.appendChild(b);
   }
 }
+function fillSelect(el, items, current) {
+  el.replaceChildren();
+  for (const [val, text] of items) {
+    const o = document.createElement("option");
+    o.value = String(val);
+    o.textContent = text;
+    el.appendChild(o);
+  }
+  el.value = String(current);
+}
 
-function render() {
-  normalize();
-  writeHash();
-  $("init").value = S.init;
-  seg($("charts"), CHART_ORDER.filter((c) => selsFor(c).length).map((c) => [c, CHARTS[c].label]), S.chart,
-    (c) => { S.chart = c; render(); });
-  $("sel-lab").textContent = CHARTS[S.chart].kind === "period" ? "期間" : "時刻";
-  seg($("sels"), selsFor(S.chart).map((v) => [v, selLabel(S.chart, v)]), S.sel, (v) => { S.sel = v; render(); });
-  seg($("regions"), regionsFor(S.chart, S.sel).map((r) => [r, REGION_LABEL[r] || r]), S.region,
-    (r) => { S.region = r; render(); });
-
-  const f = initFiles().find((x) => x.chart === S.chart && x.value === S.sel && x.region === S.region);
-  const img = $("img");
+// 画像1枚を表示する（n=1: 左、n=2: 右）
+function showPanel(n, P) {
+  const img = $("img" + n), cap = $("caption" + n), dl = $("dl" + n);
+  const f = findFile(P);
   if (f) {
-    const title = `${CHARTS[S.chart].label} ${selLabel(S.chart, S.sel)} ${REGION_LABEL[S.region] || S.region}`;
-    img.src = `charts/${S.init}/${f.name}`;
-    img.alt = `${title}（初期値 ${fmtInit(S.init)}）`;
-    $("caption").textContent = `${title} ／ 初期値 ${fmtInit(S.init)}`;
-    $("status").textContent = "";
+    const title = `${CHARTS[P.chart].label} ${selLabel(P.init, P.chart, P.sel)} ${REGION_LABEL[P.region] || P.region}`;
+    const url = `charts/${P.init}/${f.name}`;
+    img.src = url;
+    img.alt = `${title}（初期値 ${fmtInit(P.init)}）`;
+    cap.textContent = `${title} ／ 初期値 ${fmtInit(P.init)}`;
+    dl.href = url;
+    dl.download = f.name;
+    dl.hidden = false;
   } else {
     img.removeAttribute("src");
-    $("status").textContent = "該当する図がありません。";
+    img.alt = "";
+    cap.textContent = "この組み合わせの図はありません。";
+    dl.hidden = true;
   }
-  $("help").textContent = CHARTS[S.chart].help;
+}
+
+function render() {
+  fixPanel(S);
+  const R = rightPanel();
+  writeHash();
+  $("init").value = S.init;
+
+  // 左の選択
+  seg($("charts"), chartsFor(S.init).map((c) => [c, CHARTS[c].label]), S.chart, (c) => { S.chart = c; render(); });
+  $("sel-lab").textContent = CHARTS[S.chart].kind === "period" ? "期間" : "時刻";
+  seg($("sels"), selsFor(S.init, S.chart).map((v) => [v, selLabel(S.init, S.chart, v)]), S.sel, (v) => { S.sel = v; render(); });
+  seg($("regions"), regionsFor(S.init, S.chart, S.sel).map((r) => [r, REGION_LABEL[r] || r]), S.region, (r) => { S.region = r; render(); });
+
+  // 表示（並べ方・大きさ）
+  $("sideChk").checked = S.side !== "off";
+  fillSelect($("sideMode"), SIDE_MODES, S.side === "off" ? S.mode : S.side);
+  $("sideMode").hidden = S.side === "off";
+  fillSelect($("sizeSel"), SIZES, S.size);
+
+  // 右の選択
+  $("sideRow").hidden = S.side === "off";
+  const isInit = S.side === "init";
+  for (const id of ["chart2", "sel2", "region2"]) $(id).hidden = isInit;
+  if (R) {
+    fillSelect($("init2"), M.inits.map((x) => [x.init, fmtInit(x.init)]), R.init);
+    if (!isInit) {
+      fillSelect($("chart2"), chartsFor(R.init).map((c) => [c, CHARTS[c].label]), R.chart);
+      fillSelect($("sel2"), selsFor(R.init, R.chart).map((v) => [v, selLabel(R.init, R.chart, v)]), R.sel);
+      fillSelect($("region2"), regionsFor(R.init, R.chart, R.sel).map((r) => [r, REGION_LABEL[r] || r]), R.region);
+    }
+  }
+
+  // 画像
+  $("views").className = `views size-${S.size}${R ? " two" : ""}`;
+  $("view2").hidden = !R;
+  showPanel(1, S);
+  if (R) showPanel(2, R);
+  $("help").textContent = CHARTS[S.chart].help + (R && S.side === "chart" && R.chart !== S.chart ? "（右の図: " + CHARTS[R.chart].help + "）" : "");
 }
 
 function move(dir, list, cur) {
@@ -113,16 +188,33 @@ function move(dir, list, cur) {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (!M || e.target.tagName === "SELECT") return;
+  if (!M || !M.inits || !M.inits.length) return;
+  if (["SELECT", "INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-    S.sel = move(e.key === "ArrowRight" ? 1 : -1, selsFor(S.chart), S.sel);
+    S.sel = move(e.key === "ArrowRight" ? 1 : -1, selsFor(S.init, S.chart), S.sel);
   } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-    const avail = CHART_ORDER.filter((c) => selsFor(c).length);
-    S.chart = move(e.key === "ArrowDown" ? 1 : -1, avail, S.chart);
+    S.chart = move(e.key === "ArrowDown" ? 1 : -1, chartsFor(S.init), S.chart);
+  } else if (e.key === "c" || e.key === "C") {            // 並べて表示の切替
+    S.side = S.side === "off" ? S.mode : "off";
   } else return;
   e.preventDefault();
   render();
 });
+
+function bindControls() {
+  $("init").addEventListener("change", () => { S.init = $("init").value; render(); });
+  $("sizeSel").addEventListener("change", () => {
+    S.size = $("sizeSel").value;
+    try { localStorage.setItem("wsc_stats_size", S.size); } catch (e) { /* 保存できない環境は無視 */ }
+    render();
+  });
+  $("sideChk").addEventListener("change", () => { S.side = $("sideChk").checked ? S.mode : "off"; render(); });
+  $("sideMode").addEventListener("change", () => { S.mode = S.side = $("sideMode").value; render(); });
+  $("init2").addEventListener("change", () => { S.p2.init = $("init2").value; render(); });
+  $("chart2").addEventListener("change", () => { S.p2.chart = $("chart2").value; render(); });
+  $("sel2").addEventListener("change", () => { S.p2.sel = +$("sel2").value; render(); });
+  $("region2").addEventListener("change", () => { S.p2.region = $("region2").value; render(); });
+}
 
 async function main() {
   try {
@@ -137,21 +229,19 @@ async function main() {
     $("status").textContent = "統計図がまだありません。ローカルで見るときは python pipeline.py で作ってから serve_local.py を起動してください（天気図は上のリンクから見られます）。";
     return;
   }
-  const sel = $("init");
-  for (const it of M.inits) {
-    const o = document.createElement("option");
-    o.value = it.init;
-    o.textContent = fmtInit(it.init);
-    sel.appendChild(o);
-  }
-  sel.addEventListener("change", () => { S.init = sel.value; render(); });
+  fillSelect($("init"), M.inits.map((x) => [x.init, fmtInit(x.init)]), M.inits[0].init);
   $("updated").textContent = `更新: ${M.updated.replace("T", " ")}`;
   $("legal-source").textContent = M.legal.source;
   $("legal-clim").textContent = `平年値: ${M.legal.climatology}`;
   $("legal-disclaimer").textContent = M.legal.disclaimer;
+  try {                                       // 画像の大きさは前回の選択を覚える
+    const sv = localStorage.getItem("wsc_stats_size");
+    if (sv && SIZES.some(([v]) => v === sv)) S.size = sv;
+  } catch (e) { /* 既定のまま */ }
   S.init = M.inits[0].init;
+  bindControls();
   readHash();
   render();
 }
-window.addEventListener("hashchange", () => { if (M) { readHash(); render(); } });
+window.addEventListener("hashchange", () => { if (M && M.inits && M.inits.length) { readHash(); render(); } });
 main();

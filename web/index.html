@@ -36,19 +36,38 @@
       <span class="lab">領域</span>
       <div id="regions" class="seg" role="group" aria-label="領域"></div>
     </div>
+    <div class="row">
+      <span class="lab">表示</span>
+      <label class="chk" title="2枚を左右に並べて表示します（Cキーでも切り替え）"><input type="checkbox" id="sideChk"> 並べて表示</label>
+      <select id="sideMode" hidden aria-label="並べ方"></select>
+      <label class="inl">画像の大きさ <select id="sizeSel" title="画像の表示サイズ。「画面に収める」は縦が切れないように縮めます"></select></label>
+    </div>
+    <div class="row" id="sideRow" hidden>
+      <span class="lab">右の図</span>
+      <select id="init2" aria-label="右の図の初期値" title="右の図の初期値"></select>
+      <select id="chart2" aria-label="右の図の図種" title="右の図の図種"></select>
+      <select id="sel2" aria-label="右の図の期間・時刻" title="右の図の期間・時刻"></select>
+      <select id="region2" aria-label="右の図の領域" title="右の図の領域"></select>
+    </div>
   </section>
 
   <section class="view">
     <p id="status" class="muted" role="status"></p>
-    <figure>
-      <img id="img" alt="">
-      <figcaption id="caption"></figcaption>
-    </figure>
+    <div id="views" class="views size-fit">
+      <figure id="view1">
+        <img id="img1" alt="">
+        <figcaption><span id="caption1"></span> <a id="dl1" class="dl" download title="この画像を保存">保存</a></figcaption>
+      </figure>
+      <figure id="view2" hidden>
+        <img id="img2" alt="">
+        <figcaption><span id="caption2"></span> <a id="dl2" class="dl" download title="この画像を保存">保存</a></figcaption>
+      </figure>
+    </div>
     <details class="help" open>
       <summary>この図の見方</summary>
       <p id="help"></p>
     </details>
-    <p class="muted keys">キーボード: ← → で期間・時刻を切替、↑ ↓ で図種を切替</p>
+    <p class="muted keys">キーボード: ← → で期間・時刻を切替、↑ ↓ で図種を切替、C で並べて表示の切替</p>
   </section>
 </main>
 

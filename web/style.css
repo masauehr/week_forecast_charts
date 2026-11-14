@@ -45,3 +45,21 @@ footer p { margin: 4px 0; }
 .sitenav a { color: var(--accent); background: var(--panel); }
 .sitenav a:hover { background: var(--accent-bg); }
 .sitenav .here { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* 並べて表示・画像の大きさ */
+.chk { width: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--text); font-size: .9rem; cursor: pointer; }
+.inl { width: auto; display: inline-flex; align-items: center; gap: 6px; }
+.dl { margin-left: 8px; font-size: .8rem; color: var(--accent); }
+.views { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.views.two { grid-template-columns: 1fr 1fr; }
+@media (max-width: 760px) { .views.two { grid-template-columns: 1fr; } }
+.views figure[hidden] { display: none; }
+.views img { margin: 0 auto; }
+.size-fit img { width: auto; max-width: 100%; max-height: calc(100vh - 230px); }
+.size-wide img { width: 100%; }
+.size-80 img { width: 80%; }
+.size-60 img { width: 60%; }
+.size-40 img { width: 40%; }
+
+/* hidden 属性を display 指定より優先（.row などの display:flex に負けて表示されるのを防ぐ） */
+[hidden] { display: none !important; }
