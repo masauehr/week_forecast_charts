@@ -22,17 +22,22 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import fetch_ens as fe
+import fetch_gefs as fg
 
 ROOT = Path(__file__).resolve().parent
 LOG_DIR = ROOT / "logs"
 STATE = LOG_DIR / "availability_state.json"
 CSV = LOG_DIR / "availability.csv"
-STEPS = (0, 168, 336, 360)      # 代表の予報時間。360h が「作図に必要な最後」
+# モデルごとの代表の予報時間。最後の値が「作図に必要な最後」（ens=統計図は360h・天気図は168h、gefs=天気図の168h）
+MODEL_STEPS = {"ens": (0, 168, 336, 360), "gefs": (0, 168)}
 HOURS_BACK = 36                 # この時間より古い初期値は確認しない
-HEADER = ["初期値UTC", "FT", "検出時刻UTC", "初期値からの経過[h]", "検出間隔[分]"]
+HEADER = ["モデル", "初期値UTC", "FT", "検出時刻UTC", "初期値からの経過[h]", "検出間隔[分]"]
 
 
-def _available(init, step):
+def _available(model, init, step):
+    if model == "gefs":
+        url = fg.mean_url(init, step)
+        return fg._head_ok(url + ".idx") and fg._head_ok(url)
     url = fe.base_url(init, step)
     return fe._head_ok(url + ".index") and fe._head_ok(url + ".grib2")
 
@@ -47,21 +52,22 @@ def check():
     last = datetime.fromisoformat(st["last_check"]) if st.get("last_check") else None
     gap = round((now - last).total_seconds() / 60) if last else None
     rows = []
-    for init in fe.candidate_inits(days_back=2):
-        age_h = (now - init).total_seconds() / 3600
-        if age_h < 0 or age_h > HOURS_BACK:
-            continue
-        for s in STEPS:
-            key = f"{init:%Y%m%d%H}/{s}"
-            if key in st["seen"] or not _available(init, s):
+    for model, steps in MODEL_STEPS.items():
+        for init in fe.candidate_inits(days_back=2):
+            age_h = (now - init).total_seconds() / 3600
+            if age_h < 0 or age_h > HOURS_BACK:
                 continue
-            if first_run:
-                st["seen"][key] = "baseline"
-            else:
-                st["seen"][key] = now.isoformat(timespec="seconds")
-                rows.append([f"{init:%Y%m%d%H}", s, f"{now:%Y-%m-%d %H:%M}", f"{age_h:.2f}", gap])
+            for s in steps:
+                key = f"{model}/{init:%Y%m%d%H}/{s}"
+                if key in st["seen"] or not _available(model, init, s):
+                    continue
+                if first_run or not any(k.startswith(model + "/") for k in st["seen"]):
+                    st["seen"][key] = "baseline"          # 初回（このモデルを記録し始めた回）に揃っていたもの
+                else:
+                    st["seen"][key] = now.isoformat(timespec="seconds")
+                    rows.append([model, f"{init:%Y%m%d%H}", s, f"{now:%Y-%m-%d %H:%M}", f"{age_h:.2f}", gap])
     cutoff = now - timedelta(hours=HOURS_BACK + 24)
-    st["seen"] = {k: v for k, v in st["seen"].items() if fe.parse_init(k.split("/")[0]) > cutoff}
+    st["seen"] = {k: v for k, v in st["seen"].items() if fe.parse_init(k.split("/")[1]) > cutoff}
     st["last_check"] = now.isoformat(timespec="seconds")
     STATE.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
     if rows:
@@ -76,7 +82,7 @@ def check():
         print(f"{stamp} 初回: 揃い済み {len(st['seen'])} 件を基準として記録（以降の新規だけ記録します）")
     else:
         for r in rows:
-            print(f"{stamp} 新規: {r[0]} FT{r[1]} 経過 {r[3]}h（検出間隔 {r[4]}分）")
+            print(f"{stamp} 新規: {r[0]} {r[1]} FT{r[2]} 経過 {r[4]}h（検出間隔 {r[5]}分）")
         if not rows:
             print(f"{stamp} 新規なし")
 
@@ -88,24 +94,28 @@ def report():
     with CSV.open(encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     print(f"記録 {len(rows)} 件（初期値からの経過時間[h]）")
-    print("\n■ 初期値ごとの実測（360h が揃った経過時間 = 作図に必要な最後）")
-    by = {}
-    for r in rows:
-        if r["FT"] == "360":
-            print(f"  {r['初期値UTC']} → {r['検出時刻UTC']} UTC 揃う（初期値から {float(r['初期値からの経過[h]']):.2f}h後, "
-                  f"検出間隔 {r['検出間隔[分]']}分）")
-            if r["検出間隔[分]"] in ("", "None") or int(r["検出間隔[分]"]) <= 30:
-                by.setdefault(r["初期値UTC"][-2:] + "UTC", []).append(float(r["初期値からの経過[h]"]))
-    print("\n■ 初期時刻(UTC)ごとの FT360 が揃うまでの経過時間[h]（中央値・最大・件数。検出間隔30分超は除く）")
-    for hh, v in sorted(by.items()):
-        print(f"  {hh}: 中央値 {statistics.median(v):.2f}h / 最大 {max(v):.2f}h / {len(v)}件")
-    print("\n■ 参考: FT0 から FT360 までに掛かる時間（公開が順次進む長さ）")
-    t = {}
-    for r in rows:
-        t.setdefault(r["初期値UTC"], {})[r["FT"]] = float(r["初期値からの経過[h]"])
-    for k, d in sorted(t.items()):
-        if "0" in d and "360" in d:
-            print(f"  {k}: FT0 {d['0']:.2f}h → FT360 {d['360']:.2f}h（差 {d['360'] - d['0']:.2f}h）")
+    for model, steps in MODEL_STEPS.items():
+        last = str(steps[-1])
+        mrows = [r for r in rows if r["モデル"] == model]
+        if not mrows:
+            continue
+        print(f"\n■ {model}: 初期値ごとの実測（{last}h が揃った経過時間 = 作図に必要な最後）")
+        by = {}
+        for r in mrows:
+            if r["FT"] == last:
+                print(f"  {r['初期値UTC']} → {r['検出時刻UTC']} UTC 揃う（初期値から {float(r['初期値からの経過[h]']):.2f}h後, "
+                      f"検出間隔 {r['検出間隔[分]']}分）")
+                if r["検出間隔[分]"] in ("", "None") or int(r["検出間隔[分]"]) <= 30:
+                    by.setdefault(r["初期値UTC"][-2:] + "UTC", []).append(float(r["初期値からの経過[h]"]))
+        print(f"■ {model}: 初期時刻(UTC)ごとの FT{last} が揃うまでの経過時間[h]（中央値・最大・件数。検出間隔30分超は除く）")
+        for hh, v in sorted(by.items()):
+            print(f"  {hh}: 中央値 {statistics.median(v):.2f}h / 最大 {max(v):.2f}h / {len(v)}件")
+        t = {}
+        for r in mrows:
+            t.setdefault(r["初期値UTC"], {})[r["FT"]] = float(r["初期値からの経過[h]"])
+        for k, d in sorted(t.items()):
+            if "0" in d and last in d:
+                print(f"  参考 {k}: FT0 {d['0']:.2f}h → FT{last} {d[last]:.2f}h（差 {d[last] - d['0']:.2f}h）")
 
 
 if __name__ == "__main__":

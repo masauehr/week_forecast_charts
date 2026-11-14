@@ -39,3 +39,9 @@ footer { padding-bottom: 28px; margin-top: 18px; font-size: .8rem; color: var(--
 footer p { margin: 4px 0; }
 .warn { color: var(--warn); background: var(--warn-bg); padding: 6px 10px; border-radius: 6px; }
 @media (max-width: 560px) { .lab, label { width: auto; } }
+
+.sitenav { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; font-size: .9rem; }
+.sitenav a, .sitenav .here { padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
+.sitenav a { color: var(--accent); background: var(--panel); }
+.sitenav a:hover { background: var(--accent-bg); }
+.sitenav .here { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }

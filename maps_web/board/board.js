@@ -18,7 +18,7 @@
 
   // 並び順（高層→地上）。整列すると左上が最も高い高度、右下が地上(surf)になる。未知の図は末尾
   const ORDER = ["jet100", "jet200", "jet300", "t300", "z500", "t500", "t700", "ept850", "t850", "t975", "t925", "tenki", "surf"];
-  const DEFAULT_ON = ["jet200", "z500", "t700", "t850", "ept850", "surf"];   // 850hPaは気温・湿数・風と相当温位・風を並べる
+  const DEFAULT_ON = ["jet300", "z500", "t700", "t850", "ept850", "surf"];   // 850hPaは気温・湿数・風と相当温位・風を並べる
   const REGION_DEFAULT = "japan";
   // 上部メニューとパネル見出し用の短い名前
   const SHORT = { surf: "地上降水", tenki: "天気", t975: "975", t925: "925", t850: "850", ept850: "850EPT",

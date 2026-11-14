@@ -33,7 +33,8 @@ def _idx(rows):
 
 def test_select_records_picks_needed_and_shortest_window():
     idx = _idx([
-        ("HGT", "500 mb", "24 hour fcst"), ("HGT", "300 mb", "24 hour fcst"),      # 300hPaは除外
+        ("HGT", "500 mb", "24 hour fcst"), ("HGT", "300 mb", "24 hour fcst"),      # 300hPaの高度・風は取る（気温・湿度は別途）
+        ("TMP", "250 mb", "24 hour fcst"),                                       # 250hPaは不要
         ("TMP", "850 mb", "24 hour fcst"), ("TMP", "2 m above ground", "24 hour fcst"),
         ("RH", "700 mb", "24 hour fcst"), ("RH", "2 m above ground", "24 hour fcst"),   # 2m RH は不要
         ("UGRD", "10 m above ground", "24 hour fcst"), ("PRMSL", "mean sea level", "24 hour fcst"),
@@ -42,10 +43,11 @@ def test_select_records_picks_needed_and_shortest_window():
         ("TCDC", "entire atmosphere", "18-24 hour ave fcst"),
     ])
     got = [(r[3], r[4], r[5]) for r in fg.select_records(idx)]
-    assert ("HGT", "500 mb", "24 hour fcst") in got and ("HGT", "300 mb", "24 hour fcst") not in got
+    assert ("HGT", "500 mb", "24 hour fcst") in got and ("HGT", "300 mb", "24 hour fcst") in got
+    assert ("TMP", "250 mb", "24 hour fcst") not in got
     assert ("RH", "2 m above ground", "24 hour fcst") not in got
     assert ("APCP", "surface", "18-24 hour acc fcst") in got and ("APCP", "surface", "0-24 hour acc fcst") not in got
-    assert len(got) == 9
+    assert len(got) == 10
 
 
 def _F(levels):

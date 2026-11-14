@@ -7,8 +7,8 @@
 - geavg = 30メンバー+コントロールの平均。0.5°・約15MB/ステップ（全変数）。索引(.idx)のバイト範囲で必要分だけ取る。
 - 予報時間: 0〜240hは3時間毎、384hまで。週間予報用に12時間毎（0〜168h）を使う。
 - 気圧面の変数は 200/500/700/850/925hPa。**300hPaの気温・湿度と700hPaの上昇流は平均(geavg)に無い**
-  （各メンバーの pgrb2b にだけある）。そのため 300hPa の図（jet300・t300）は GEFS では作らない。
-  700hPaの上昇流は各メンバーの平均で補う（fetch_vvel700_mean）。
+  （各メンバーの pgrb2b にだけある）。そのため 300hPa の気温・湿度と 700hPa の上昇流は、各メンバー(31)から範囲取得して
+  平均して補う（fetch_extras）。週間用のジェットは 300hPa が主（jet300）なので必須。
 
 F の形式は nwp_chart_web の nwp_data.load_fields と同じ（mean_charts.py がそのまま使える）:
   {"lats","lons","msl"(hPa),"sp"(hPa),"u10","v10","t2"(℃),"tcc"(%),"rr"(mm/h),"rr_h"(降水の平均時間),
@@ -34,7 +34,7 @@ import requests
 S3 = "https://noaa-gefs-pds.s3.amazonaws.com"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; WeekToSeason/0.1)"}
 WORKERS = 8
-PLEVELS = (925, 850, 700, 500, 200)       # geavg に t・r・u・v・gh が揃う面（300hPaは気温・湿度が無い）
+PLEVELS = (925, 850, 700, 500, 300, 200)  # geavg から取る面。300hPaは gh・u・v だけ（気温・湿度は fetch_extras で補う）
 STEPS_WEEK = tuple(range(0, 169, 12))     # 週間予報用: 0〜168hを12時間毎（14+1時刻）
 MAX_STEP = 168
 MEMBERS = ["c00"] + [f"p{n:02d}" for n in range(1, 31)]   # 各メンバー（上昇流の平均用）
@@ -88,8 +88,15 @@ def find_latest_complete(max_step: int = MAX_STEP, days_back: int = 3):
 # ------------------------------------------------------------------ 索引 → バイト範囲
 def read_idx(url: str):
     """.idx を読み、[(番号, 開始バイト, 長さ or None, 変数, 面, 予報の説明)] を返す。"""
-    r = requests.get(url + ".idx", headers=HEADERS, timeout=60)
-    r.raise_for_status()
+    for attempt in range(4):
+        try:
+            r = requests.get(url + ".idx", headers=HEADERS, timeout=60)
+            r.raise_for_status()
+            break
+        except requests.RequestException:        # 接続リセット等は少し待って再試行
+            if attempt == 3:
+                raise
+            time.sleep(2 * (attempt + 1))
     rows = []
     for line in r.text.splitlines():
         f = line.split(":")
@@ -167,13 +174,15 @@ def fetch_mean(init: datetime, step: int, dest: Path, workers: int = WORKERS) ->
     return dest
 
 
-def fetch_vvel700_mean(init: datetime, step: int, workers: int = WORKERS):
-    """31メンバー(pgrb2b)から 700hPa の鉛直p速度(VVEL・Pa/s)だけを範囲取得して平均する。(lat, lon) を返す。"""
+def fetch_member_mean(init: datetime, step: int, var: str, level: str, workers: int = WORKERS):
+    """31メンバー(pgrb2b)から変数 var・面 level（例 "VVEL","700 mb"）だけを範囲取得して平均する。(lat, lon) を返す。
+
+    geavg(pgrb2a の平均)に無い変数（700hPaの上昇流・300hPaの気温と湿度）を補うために使う。1回あたり約11秒。"""
     import pygrib
 
     def one(member):
         url = member_url(init, step, member)
-        rec = [x for x in read_idx(url) if x[3] == "VVEL" and x[4] == "700 mb"]
+        rec = [x for x in read_idx(url) if x[3] == var and x[4] == level]
         if not rec:
             return None
         data = _range_get(url, rec[0][1], rec[0][2])
@@ -192,9 +201,28 @@ def fetch_vvel700_mean(init: datetime, step: int, workers: int = WORKERS):
     return np.mean(np.stack(arrs), axis=0)
 
 
+def fetch_vvel700_mean(init: datetime, step: int, workers: int = WORKERS):
+    """700hPa の鉛直p速度(VVEL・Pa/s)のメンバー平均。"""
+    return fetch_member_mean(init, step, "VVEL", "700 mb", workers)
+
+
+def fetch_extras(init: datetime, step: int, workers: int = WORKERS):
+    """geavg に無い値を各メンバーの平均で補う: 700hPa上昇流(w700・Pa/s)・300hPa気温(t300・K)・300hPa湿度(r300・%)。
+    3つを同時に取る。取れなかったものは None。"""
+    jobs = {"w700": ("VVEL", "700 mb"), "t300": ("TMP", "300 mb"), "r300": ("RH", "300 mb")}
+    per = max(2, workers // len(jobs))              # 3系統を同時に取るので、各系統の並列数は減らして接続の総数を抑える
+    with ThreadPoolExecutor(len(jobs)) as ex:
+        futs = {k: ex.submit(fetch_member_mean, init, step, v, lv, per) for k, (v, lv) in jobs.items()}
+        return {k: f.result() for k, f in futs.items()}
+
+
 # ------------------------------------------------------------------ 読み込み → F
-def load_F(path: Path, vvel700=None):
-    """fetch_mean で保存したGRIB2を F 辞書にする。vvel700: 700hPaの平均VVEL(Pa/s)（任意）。"""
+def load_F(path: Path, vvel700=None, extras=None):
+    """fetch_mean で保存したGRIB2を F 辞書にする。
+    vvel700: 700hPaの平均VVEL(Pa/s)（任意）。extras: fetch_extras の結果（w700・t300・r300。あれば300hPaの気温・湿度と上昇流を補う）。"""
+    if extras:
+        if vvel700 is None:
+            vvel700 = extras.get("w700")
     import pygrib
     grbs = pygrib.open(str(path))
     d = {"p": {}}
@@ -226,6 +254,10 @@ def load_F(path: Path, vvel700=None):
                 rr_h = int(g.endStep - g.startStep) if hasattr(g, "startStep") else None
     finally:
         grbs.close()
+    if extras and 300 in d["p"] and extras.get("t300") is not None:     # geavg には300hPaの気温・湿度が無いのでメンバー平均で補う
+        d["p"][300]["t"] = extras["t300"]
+        if extras.get("r300") is not None:
+            d["p"][300]["r"] = extras["r300"]
     F = {"lats": lats[:, 0], "lons": np.mod(lons[0, :], 360.0), "rr": None, "rr_h": rr_h or 6}
     F["msl"] = d["msl"] / 100.0
     F["sp"] = d["sp"] / 100.0

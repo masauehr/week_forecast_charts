@@ -33,6 +33,19 @@ def out_name(chart, region, ft):
 
 
 def _step_worker(args):
+    """1ステップ分（失敗したら最大3回やり直す。配信側の接続リセット等の一時的なエラー対策）。"""
+    import requests
+    for attempt in range(3):
+        try:
+            return _step_once(args)
+        except (requests.RequestException, ConnectionError, OSError) as e:
+            print(f"  f{args[2]:03d}: 失敗（{type(e).__name__}）。{attempt + 1}/3回目", flush=True)
+            if attempt == 2:
+                raise
+            time.sleep(10 * (attempt + 1))
+
+
+def _step_once(args):
     """1ステップ分: 取得 → F → 全図種×全地域を描画。作ったファイル名の一覧を返す。"""
     model, init_text, step, out_dir, regions = args
     import mean_charts as mc
@@ -41,8 +54,7 @@ def _step_worker(args):
     with tempfile.TemporaryDirectory(prefix="wsc_mean_") as td:
         if model == "gefs":
             p = fg.fetch_mean(init, step, Path(td) / f"f{step:03d}.grib2")
-            w = fg.fetch_vvel700_mean(init, step)
-            F = fg.load_F(p, w)
+            F = fg.load_F(p, extras=fg.fetch_extras(init, step))      # 700hPa上昇流・300hPa気温と湿度をメンバー平均で補う
         elif model == "ens":
             import fetch_ens as fe
             import fetch_ens_mean as em
