@@ -1,13 +1,14 @@
-# week_to_season_charts（週間・長期予報用 天気図）
+# week_forecast_charts（週間〜2週間予報用 天気図）
 
-詳しくは [week-to-season-charts.md](week-to-season-charts.md) を参照。
+詳しくは [week-forecast-charts.md](week-forecast-charts.md) を参照。
 
 ## 目的
-週間天気予報（〜7日）・2週間気温予報・1か月予報・3か月予報の**判断に使う天気図**を作る。
+週間天気予報（〜7日）・2週間気温予報（〜15日先）の**判断に使う天気図**を作る。
+**1か月以上の長期予報は別プロジェクト [long_range_charts](../long_range_charts/) に移した**（2026-11-14。旧名 week_to_season_charts から名称変更。GitHub のリポジトリ名・公開サイトの URL は旧名 `week_to_season_charts` のまま）。
 通常の「ある1時刻の予報図」（nwp_chart_web）ではなく、**アンサンブル予報の統計（平均・ばらつき・確率）と平年からの偏差**を主役にした図を扱う。
 
 ## 通常の天気図との違い
-| 項目 | nwp_chart_web（短期〜中期） | week_to_season_charts（週間〜長期） |
+| 項目 | nwp_chart_web（短期〜中期） | week_forecast_charts（週間〜2週間） |
 |---|---|---|
 | 主役 | 決定論予報（1メンバー） | アンサンブル平均・スプレッド・確率 |
 | 時間軸 | 初期値からの時刻（FT） | 期間平均（週平均・5日平均・2週間平均） |
@@ -32,7 +33,7 @@
 | [DATA_SOURCES.md](DATA_SOURCES.md) | データ源・利用条件・平年値の扱い |
 | [CRON_JOB_ORG.md](CRON_JOB_ORG.md) | cron-job.org での定期起動の設定手順・トークン・期限通知 |
 | [PLAN.md](PLAN.md) | フェーズ計画・未決事項・進捗 |
-| [week-to-season-charts.md](week-to-season-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
+| [week-forecast-charts.md](week-forecast-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
 
 ## 公開サイト
 https://masauehr.github.io/week_to_season_charts/ （初期値・図種・期間・領域を切り替えて閲覧。PNGとmanifestだけを公開。GRIB2は載せない）

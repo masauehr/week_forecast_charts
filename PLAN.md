@@ -9,7 +9,7 @@
 | 3 | C4〜C6 | スプレッド・降水確率・地点プルーム | 未着手 |
 | 4 | 閲覧画面 | 初期値・期間・図種の切替（Vanilla JS） | **完了(2026-11-14)** https://masauehr.github.io/week_to_season_charts/ |
 | 5 | 自動化・公開 | GitHub Actions で定期生成・PNGだけ gh-pages 公開・出典表示 | **Actions（手動実行）・Pages公開は完了。cron-job.org での自動化が未着手** |
-| 6 | 長期（1か月〜3か月） | 循環指標(C7)、季節予報モデルの可否調査 | 未着手 |
+| 6 | 長期（1か月〜3か月） | 循環指標(C7)、季節予報モデルの可否調査 | **移管: `../long_range_charts` で扱う（2026-11-14）。このプロジェクトでは行わない** |
 
 ## 決定事項
 - 2026-11-14: **気象庁の有料配信（JMBSC）は契約しない**。主データは ECMWF ENS。気象庁モデルへの横展開の設計（取得層だけ差し替え）は将来のために残すが、実装はしない。
@@ -19,7 +19,7 @@
 1. 主データはECMWF ENS単独か、GEFSとの併用か（マルチモデルは信頼性向上、実装は倍）。
 2. 気候値の基準（ERA5かJRA-3Qか）。気象庁平年値との整合をどこまで求めるか。
 3. 期間区切り（1〜7日/8〜14日で固定か、5日平均・週平均を選べるか）。
-4. 1か月以上の予報の数値データが無料で入手できるか（ECMWF延長予報は一般に有償の可能性。要確認）。
+4. （移管）1か月以上の予報の数値データの入手可否は long_range_charts の DATA_SOURCES.md で調べる。
 5. 公開するか（自分用ローカルのみか）。公開なら容量・利用条件。
 6. nwp_chart_web の画面に統合するか、別画面にするか（現方針: 別リポジトリで単独動作）。
 
@@ -33,7 +33,7 @@
 |---|---|
 | 2026-11-14 | プロジェクト新規作成。README/CLAUDE/DESIGN/CHARTS/DATA_SOURCES/PLAN/マニュアルを作成（コード未着手） |
 | 2026-11-14 | DATA_SOURCES.md に公式ページ調査結果（ECMWF ENS/AIFS ENS/GEFS/RISH）を追記 |
-| 2026-11-14 | 名称を extended_range_charts から week_to_season_charts（週間〜季節）に変更 |
+| 2026-11-14 | 名称を extended_range_charts から week_forecast_charts（週間〜季節）に変更 |
 | 2026-11-14 | RISH を日付別に走査: 現行の気象庁アンサンブル(EPSW/EPS1)は入手不可と確定（EPSWは2020/03まで）。主データを ECMWF ENS＋GSM＋GEFS に決定 |
 | 2026-11-14 | JMBSC有料配信を調査（週間/2週間・1か月/6か月アンサンブルGPVあり・約27,000円/月＋開設50,000円・FTP put型）。ECMWFで作った処理を気象庁モデルへ適用する差分表を追記。Range取得は並列化が必須と実測 |
 
@@ -72,3 +72,7 @@
 - 画面: nwp_chart_web の web/ をコピーして `maps_web/` に（Chrome で標準版・画用紙版の表示とキー操作を確認。既定は日本周辺・地上、画用紙版の既定は 200・500・700・850・850EPT・地上）。
 - 公開: `update-maps.yml`（手動実行。モデルごとに並列→公開ジョブ）。**未実行**。次: push → GEFS だけ実行 → ENS 実行 → cron-job.org への組み込み。
 - 未実装: GSM（決定論・ローカル専用）。
+
+## 名称変更と長期予報の分離（2026-11-14）
+- **1か月以上の長期予報は別プロジェクト `../long_range_charts` に移す**（ユーザー決定）。このプロジェクトは週間〜2週間（〜15日先）に絞る。
+- フォルダ名を week_to_season_charts → **week_forecast_charts** に変更（手元のみ）。GitHub のリポジトリ名・公開サイトURL・cron-job.org のジョブURL・トークン名は**旧名のまま**（リポジトリ名は後で変更できる。変更するときは cron-job.org の URL 2つ・CRON_JOB_ORG.md・README・各マニュアルの URL を直す）。launchd のジョブ名も `com.masahiro.week_forecast_charts_*` に変更（登録し直し）。

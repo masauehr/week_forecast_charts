@@ -1,6 +1,6 @@
-# week_to_season_charts マニュアル
+# week_forecast_charts マニュアル
 
-週間天気予報・2週間気温予報・1か月予報・3か月予報の判断に使う天気図を作るプロジェクト（2026-11-14 新規作成・Phase 0＝計画のみ）。
+週間天気予報・2週間気温予報（〜15日先）の判断に使う天気図を作るプロジェクト（2026-11-14 新規作成。旧名 week_to_season_charts）。**1か月以上の長期予報は別プロジェクト long_range_charts に移した。**
 
 ## 何を作るか
 アンサンブル予報の**平均・ばらつき・確率**と**平年偏差**を図にする。1時刻の予報図ではなく、期間平均（週平均など）の大規模パターンを見るための図。
@@ -74,7 +74,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 日付 | 内容 |
 |---|---|
 | 2026-11-14 | 新規作成（計画・ドキュメントのみ） |
-| 2026-11-14 | 名称を extended_range_charts から week_to_season_charts（週間〜季節）に変更 |
+| 2026-11-14 | 名称を extended_range_charts から week_forecast_charts（週間〜季節）に変更 |
 | 2026-11-14 | JMBSC有料配信を調査（週間/2週間・1か月/6か月アンサンブルGPVあり・約27,000円/月＋開設50,000円・FTP put型）。ECMWFで作った処理を気象庁モデルへ適用する差分表を追記。Range取得は並列化が必須と実測 |
 
 ## 実装状況（2026-11-14）
@@ -94,3 +94,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | 閲覧画面(web/)・GitHub Actions(update 手動実行約8分・deploy-web)・GitHub Pages 公開（https://masauehr.github.io/week_to_season_charts/）を追加 |
 | 2026-11-14 | 自動化の下地（配信時刻の実測 check_availability.py・公開済みスキップ・トークン期限通知・CRON_JOB_ORG.md）を追加。気象庁の有料配信は契約しない決定を記録 |
 | 2026-11-14 | アンサンブル平均の天気図（標準版・画用紙版）を追加: GEFS(geavg)・ENS平均場・nwp_charts移植・maps_web・update-maps（未実行） |
+| 2026-11-14 | 名称を week_to_season_charts から week_forecast_charts に変更（手元のフォルダのみ）。1か月以上の長期予報は long_range_charts に分離 |

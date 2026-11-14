@@ -30,4 +30,4 @@ def test_decide_notifies_once_per_level_and_resets_on_renewal():
 
 def test_message_mentions_guide_and_project():
     text = tn.message(EXP - timedelta(days=2), EXP, 2)
-    assert "week_to_season_charts" in text and "CRON_JOB_ORG.md" in text
+    assert "week_forecast_charts" in text and "CRON_JOB_ORG.md" in text

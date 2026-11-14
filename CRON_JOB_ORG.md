@@ -1,4 +1,4 @@
-# cron-job.org 設定ガイド — 図の定期更新（week_to_season_charts）
+# cron-job.org 設定ガイド — 図の定期更新（week_forecast_charts）
 
 作成: 2026-11-14 ／ 方式は nwp_chart_web の [CRON_JOB_ORG.md](../nwp_chart_web/CRON_JOB_ORG.md) と同じ（コピーして調整。共通部品化しない）
 
@@ -29,11 +29,11 @@ ENS（00Z/12Z）の360時間分が揃うのは初期値から約8〜11時間後�
 
 ## 2. 配信時刻の実測（launchd）
 ```
-mkdir -p ~/projects/week_to_season_charts/logs
-cp ~/projects/week_to_season_charts/launchd/com.masahiro.week_to_season_charts_availability.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_to_season_charts_availability.plist
+mkdir -p ~/projects/week_forecast_charts/logs
+cp ~/projects/week_forecast_charts/launchd/com.masahiro.week_forecast_charts_availability.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_forecast_charts_availability.plist
 ```
-10分おきに配信状況を確認（HEAD要求のみ）して `logs/availability.csv` に記録する。集計は `python check_availability.py --report`（met_env_310）。止めるときは `launchctl bootout gui/$(id -u)/com.masahiro.week_to_season_charts_availability`。Mac がスリープの間は確認できず、遅れが大きく出る（csv の検出間隔が大きい行は精度が低い）。
+10分おきに配信状況を確認（HEAD要求のみ）して `logs/availability.csv` に記録する。集計は `python check_availability.py --report`（met_env_310）。止めるときは `launchctl bootout gui/$(id -u)/com.masahiro.week_forecast_charts_availability`。Mac がスリープの間は確認できず、遅れが大きく出る（csv の検出間隔が大きい行は精度が低い）。
 
 ## 3. 専用トークンの作成・更新（ユーザーが行う）
 ### 3-1. トークンの作成（GitHub の画面）
@@ -46,21 +46,21 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_to_sea
 
 ### 3-2. 期限の通知（Slack DM）を設定する
 ```
-mkdir -p ~/.config/week_to_season_charts
-echo "2027-02-12T00:00:00Z" > ~/.config/week_to_season_charts/token_expiry     # 3-1 で控えた期限（UTC）に書き換える
-cp ~/.config/nwp_chart_web/slack_to ~/.config/week_to_season_charts/slack_to    # nwp_chart_web と同じ通知先
-cp ~/projects/week_to_season_charts/launchd/com.masahiro.week_to_season_charts_token_notify.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_to_season_charts_token_notify.plist
-/opt/homebrew/bin/python3 ~/projects/week_to_season_charts/ops/token_expiry_notify.py --test    # テスト通知（届けば正常）
+mkdir -p ~/.config/week_forecast_charts
+echo "2027-02-12T00:00:00Z" > ~/.config/week_forecast_charts/token_expiry     # 3-1 で控えた期限（UTC）に書き換える
+cp ~/.config/nwp_chart_web/slack_to ~/.config/week_forecast_charts/slack_to    # nwp_chart_web と同じ通知先
+cp ~/projects/week_forecast_charts/launchd/com.masahiro.week_forecast_charts_token_notify.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_forecast_charts_token_notify.plist
+/opt/homebrew/bin/python3 ~/projects/week_forecast_charts/ops/token_expiry_notify.py --test    # テスト通知（届けば正常）
 ```
 期限の14・7・3・2・1日前に通知し、期限切れ後は毎日通知する（毎日9:10 JST）。**トークンを更新したら `token_expiry` を新しい期限に書き換える**（忘れると期限切れ通知が毎日届く）。
 
 ### 3-3. トークンの更新
-GitHub の Fine-grained tokens で `week-to-season-charts-dispatch` を Regenerate（または新規作成）→ cron-job.org の各ジョブのヘッダー `Authorization: Bearer <新しい値>` を差し替え → `~/.config/week_to_season_charts/token_expiry` を書き換え。
+GitHub の Fine-grained tokens で `week-to-season-charts-dispatch` を Regenerate（または新規作成）→ cron-job.org の各ジョブのヘッダー `Authorization: Bearer <新しい値>` を差し替え → `~/.config/week_forecast_charts/token_expiry` を書き換え。
 
 ## 4. cron-job.org のジョブ設定
 1. https://cron-job.org でアカウント作成（無料）→ ログイン → **CREATE CRONJOB**
-2. Title: `week_to_season_charts update`
+2. Title: `week_forecast_charts update`
 3. URL: `https://api.github.com/repos/masauehr/week_to_season_charts/actions/workflows/update.yml/dispatches`
 4. Execution schedule: **User-defined**。分=30、時=1節の表の JST の時（17,18,19,20,5,6,7,8）、日・月・曜日=すべて。Time zone は Asia/Tokyo
 5. Advanced → Request method: **POST**、Request body: `{"ref":"main"}`

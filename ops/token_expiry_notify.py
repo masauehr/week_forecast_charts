@@ -4,7 +4,7 @@
 nwp_chart_web・Bluesky自動投稿・taiwan_radar_frames と同じ方式（部品は共有せずコピー）:
   launchd が毎日このスクリプトを起動し、`openclaw message send` 経由で Slack DM に送る。
 
-設定ファイル（~/.config/week_to_season_charts/ ・git管理外）:
+設定ファイル（~/.config/week_forecast_charts/ ・git管理外）:
   token_expiry   トークンの期限（1行。例: 2026-12-08T00:15:02Z）。トークンを更新したら書き換える
   slack_to       通知先（1行。例: slack:Uxxxxxxxx）。環境変数 WSC_NOTIFY_TO があればそれを優先
   notify_state.json  通知済みの段階（自動で作られる。期限が変わると自動でリセット）
@@ -27,10 +27,10 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-CONF = Path(os.environ.get("WSC_CONF_DIR") or (Path.home() / ".config" / "week_to_season_charts"))
+CONF = Path(os.environ.get("WSC_CONF_DIR") or (Path.home() / ".config" / "week_forecast_charts"))
 JST = timezone(timedelta(hours=9))
 THRESHOLDS = [1, 2, 3, 7, 14]  # 残り日数がこの値以下になった最初の実行で通知
-GUIDE = "~/projects/week_to_season_charts/CRON_JOB_ORG.md の3節（トークンの更新）"
+GUIDE = "~/projects/week_forecast_charts/CRON_JOB_ORG.md の3節（トークンの更新）"
 
 
 def parse_time(text):
@@ -75,7 +75,7 @@ def decide(now, expiry, state):
 
 def message(now, expiry, lvl):
     exp_jst = expiry.astimezone(JST).strftime("%Y-%m-%d %H:%M JST")
-    head = "【week_to_season_charts】"
+    head = "【week_forecast_charts】"
     if lvl == "expired":
         return (head + "❌ cron-job.org用のGitHubトークンが**期限切れ**です（期限 " + exp_jst + "）\n"
                 "cron-job.orgからの起動が401で失敗し、図の自動更新が止まっています。\n"
@@ -160,7 +160,7 @@ def main(argv=None):
     p.add_argument("--test", action="store_true", help="テスト通知を送る")
     args = p.parse_args(argv)
     if args.test:
-        ok = send("【week_to_season_charts】トークン期限通知のテストです（このメッセージが届けば設定は正常）")
+        ok = send("【week_forecast_charts】トークン期限通知のテストです（このメッセージが届けば設定は正常）")
         return 0 if ok else 1
     now = parse_time(args.now) if args.now else datetime.now(timezone.utc)
     return run(now, dry_run=args.dry_run)
