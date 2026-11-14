@@ -63,3 +63,11 @@ def test_charts_for_depends_on_available_levels():
 def test_850_is_split_into_two_charts_without_ssi():
     assert "t850" in mc.CHARTS and "ept850" in mc.CHARTS
     assert "SSI" not in mc.CHARTS["ept850"]["label"]
+
+
+def test_warm_up_loads_every_region(monkeypatch):
+    seen = []
+    monkeypatch.setattr(mc, "base_lines", lambda region, proj: seen.append(region))
+    monkeypatch.setattr(mc, "make_projection", lambda region: (None, None))
+    mc.warm_up()
+    assert seen == list(mc.REGIONS)

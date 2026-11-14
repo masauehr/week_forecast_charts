@@ -65,6 +65,8 @@ def _step_worker(args):
 
 
 def run(model, init, out_root, steps=None, regions=None, jobs=4):
+    import mean_charts as mc
+    mc.warm_up()                      # 海岸線データのダウンロード・読み込みを並列処理の前に済ませる
     init_text = f"{init:%Y%m%d%H}"
     out_dir = Path(out_root) / model / init_text
     steps = list(steps) if steps else list(fg.STEPS_WEEK)

@@ -513,6 +513,16 @@ def base_lines(region, proj):
     return coast, border
 
 
+def warm_up():
+    """全地域の海岸線・国境（Natural Earth）を先に読み込む。
+
+    並列に作図する前にメインプロセスで呼ぶ。初回は cartopy がデータをダウンロードするため、複数プロセスが同時に
+    読み込むと、書きかけのファイルを別のプロセスが読んで落ちる（Actions の初回実行で発生: struct.error）。"""
+    for region in REGIONS:
+        proj, _ = make_projection(region)
+        base_lines(region, proj)
+
+
 # ---------------------------------------------------------------- 枠・見出し
 def _caption(fig, parts, y, fw=None, fh=None):
     """色の違う文字を横に並べる（実際の描画幅で位置を決める）。fw: 図の幅[インチ]（省略時は FIG_W）。"""
