@@ -24,7 +24,60 @@ CLIM_VARS = {
     "msl": ("slp.day.ltm.1991-2020.nc", "slp", None),
 }
 
+PSL_BASE = "https://downloads.psl.noaa.gov/Datasets/ncep.reanalysis.derived"
+PSL_PATH = {"hgt.day.ltm.1991-2020.nc": "pressure", "air.day.ltm.1991-2020.nc": "pressure",
+            "slp.day.ltm.1991-2020.nc": "surface"}
+COMPACT = "clim_compact.npz"        # 必要な3変数だけを入れた軽量版（約30MB）。元のncは合計約540MB
 _CACHE = {}
+
+
+def download_clim(clim_dir: Path = CLIM_DIR):
+    """元の平年値ncが無ければ NOAA PSL から取得する（合計約540MB）。"""
+    import requests
+    Path(clim_dir).mkdir(parents=True, exist_ok=True)
+    for fname, sub in PSL_PATH.items():
+        dest = Path(clim_dir) / fname
+        if dest.exists():
+            continue
+        url = f"{PSL_BASE}/{sub}/{fname}"
+        print("取得:", url, flush=True)
+        with requests.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible; WeekToSeason/0.1)"},
+                          timeout=300, stream=True) as r:
+            r.raise_for_status()
+            with open(dest.with_suffix(".part"), "wb") as f:
+                for c in r.iter_content(1 << 20):
+                    f.write(c)
+        dest.with_suffix(".part").rename(dest)
+
+
+def build_compact(clim_dir: Path = CLIM_DIR):
+    """元のncから3変数を取り出して軽量版(npz)を作る。既にあれば何もしない。"""
+    out = Path(clim_dir) / COMPACT
+    if out.exists():
+        return out
+    download_clim(clim_dir)
+    data, lats, lons = {}, None, None
+    for name in CLIM_VARS:
+        data[name], lats, lons = _load_nc(name, clim_dir)
+    np.savez_compressed(out, lats=lats, lons=lons, **data)
+    return out
+
+
+def _load_nc(name, clim_dir):
+    import xarray as xr
+    fname, var, level = CLIM_VARS[name]
+    ds = xr.open_dataset(Path(clim_dir) / fname, decode_times=False)
+    v = ds[var]
+    if level is not None:
+        v = v.sel(level=level)
+    arr = np.asarray(v.values, dtype="float32")        # (365, lat, lon)
+    lats = np.asarray(ds["lat"].values, dtype="float64")
+    lons = np.asarray(ds["lon"].values, dtype="float64")
+    ds.close()
+    if lats[0] > lats[-1]:                             # 緯度を昇順に
+        arr = arr[:, ::-1, :]
+        lats = lats[::-1]
+    return arr, lats, lons
 
 
 def doy_index(t: datetime) -> int:
@@ -42,20 +95,12 @@ def load_clim(name: str, clim_dir: Path = CLIM_DIR):
     key = (name, str(clim_dir))
     if key in _CACHE:
         return _CACHE[key]
-    import xarray as xr
-    fname, var, level = CLIM_VARS[name]
-    ds = xr.open_dataset(Path(clim_dir) / fname, decode_times=False)
-    v = ds[var]
-    if level is not None:
-        v = v.sel(level=level)
-    arr = np.asarray(v.values, dtype="float32")        # (365, lat, lon)
-    lats = np.asarray(ds["lat"].values, dtype="float64")
-    lons = np.asarray(ds["lon"].values, dtype="float64")
-    ds.close()
-    if lats[0] > lats[-1]:                             # 緯度を昇順に
-        arr = arr[:, ::-1, :]
-        lats = lats[::-1]
-    _CACHE[key] = (arr, lats, lons)
+    compact = Path(clim_dir) / COMPACT
+    if compact.exists():                               # 軽量版があればそれを使う（CI向け）
+        z = np.load(compact)
+        _CACHE[key] = (z[name], z["lats"], z["lons"])
+    else:
+        _CACHE[key] = _load_nc(name, clim_dir)
     return _CACHE[key]
 
 
@@ -96,3 +141,10 @@ def clim_on_grid(name: str, times, dst_lats, dst_lons, clim_dir: Path = CLIM_DIR
 def valid_times(init: datetime, steps):
     """初期値とステップ[h] → 有効時刻のリスト。"""
     return [init + timedelta(hours=int(s)) for s in steps]
+
+
+if __name__ == "__main__":
+    import sys
+    if "--prepare" in sys.argv:
+        p = build_compact()
+        print("軽量版:", p, round(p.stat().st_size / 1e6, 1), "MB")

@@ -18,7 +18,7 @@ import cartopy.feature as cfeature
 from matplotlib.colors import BoundaryNorm, ListedColormap
 
 # 日本語フォント（mac: Hiragino Sans）。無ければ既定フォント（日本語は豆腐になる）
-plt.rcParams["font.family"] = ["Hiragino Sans", "Arial Unicode MS", "sans-serif"]
+plt.rcParams["font.family"] = ["Hiragino Sans", "Noto Sans CJK JP", "Arial Unicode MS", "sans-serif"]
 plt.rcParams["axes.unicode_minus"] = False
 
 PC = ccrs.PlateCarree()

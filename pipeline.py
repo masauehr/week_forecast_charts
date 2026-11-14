@@ -122,5 +122,6 @@ if __name__ == "__main__":
         raise SystemExit("揃った初期値が見つかりません")
     print("初期値:", init, flush=True)
     t0 = time.time()
-    files = run(init, a.regions, a.out, workers=a.workers)
+    out_dir = Path(a.out) / f"{init:%Y%m%d%H}"          # output/<初期値>/ にまとめる（publish.py の入力）
+    files = run(init, a.regions, out_dir, workers=a.workers)
     print(f"完了: {len(files)}枚 {time.time() - t0:.0f}秒")

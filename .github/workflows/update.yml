@@ -1,0 +1,76 @@
+name: update
+
+# ECMWF ENS から C1〜C3 の図を作り、公開ブランチ(gh-pages)へPNGだけを反映する（手動実行）。
+#  - GRIB2 は1ステップずつ取得して即削除する（pipeline.py）。所要は約35〜40分
+#  - 公開は履歴を溜めない単一の孤立コミット（publish.py）。GRIB2・平年値は載せない
+#  - 画面(web/)があれば publish.py が一緒に載せる
+# 自動化(cron-job.org)は画面ができてから。今は workflow_dispatch のみ。
+on:
+  workflow_dispatch:
+    inputs:
+      init:
+        description: "初期値 YYYYMMDDHH（UTCの00か12。空なら最新の揃ったもの）"
+        type: string
+        default: ""
+
+permissions:
+  contents: write   # 公開ブランチ(gh-pages)へのpush
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 日本語フォント
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
+      - name: 依存のインストール
+        run: pip install -r requirements.txt
+
+      - name: Natural Earth（海岸線）のキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/cartopy
+          key: cartopy-ne-v1
+
+      - name: 平年値（軽量版）のキャッシュ
+        id: clim
+        uses: actions/cache@v4
+        with:
+          path: data/clim/clim_compact.npz
+          key: clim-ncep-1991-2020-v1
+
+      - name: 平年値の準備（キャッシュが無いときだけ元データ約540MBを取得）
+        if: steps.clim.outputs.cache-hit != 'true'
+        run: python climatology.py --prepare
+
+      - name: テスト
+        run: python -m pytest tests -q
+
+      - name: 取得と作図（GRIB2は即削除）
+        env:
+          INIT: ${{ inputs.init }}
+        run: |
+          if [ -n "$INIT" ]; then
+            python pipeline.py --init "$INIT" --out output
+          else
+            python pipeline.py --out output
+          fi
+
+      - name: 公開ブランチへ反映
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          latest=$(ls -d output/??????????/ | sort | tail -1)
+          python publish.py --src "${latest%/}"
