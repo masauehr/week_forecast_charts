@@ -69,8 +69,9 @@ GitHub の Fine-grained tokens で `week-to-season-charts-dispatch` を Regenera
    - `Accept` : `application/vnd.github+json`
    - `X-GitHub-Api-Version` : `2022-11-28`
    - `Content-Type` : `application/json`
-7. Notify on failure を有効にする。保存後、**Test run** で `204 No Content` が返ることを確認（401＝トークン不正・期限切れ、403＝権限不足、404＝URL違い）
-8. テスト実行で GitHub の Actions タブに `update` が起動すれば成功（揃い済み・公開済みなら数十秒で何もせず終了する）
+7. NOTIFICATIONS タブ: 「execution of the cronjob fails」を ON（Notify after **1** failure）、「the cronjob will be disabled because of too many failures」を ON（自動停止の通知は必須）。「succeeds after it failed before」と「TLS certificate is about to expire」は OFF でよい（宛先は GitHub のAPIで管理できないため）。Notify via は既定の all notification channels（登録はアカウントのメール。足りなければ Settings の Notification channels で確認）。なお cron-job.org が検知する失敗は HTTP が 2xx 以外のとき（401 トークン不正・期限切れ、403 権限不足、404 URL違い）だけ。Actions の中での作図の失敗は検知できないので、GitHub の Actions 失敗メールで気づく。
+8. 保存後、**Test run** で `204 No Content` が返ることを確認（401＝トークン不正・期限切れ、403＝権限不足、404＝URL違い）
+9. テスト実行で GitHub の Actions タブに `update` が起動すれば成功（揃い済み・公開済みなら数十秒で何もせず終了する）
 
 ## 5. 確認・トラブル
 - 動作確認: GitHub の Actions → `update` の履歴。公開済みの回は「すでに公開済みのため何もしません」、新しい初期値の回は約8分で公開まで進む。
