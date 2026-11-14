@@ -12,7 +12,7 @@
   const MIN_W = IMG_W * 0.25, MAX_W = IMG_W * 2;          // 0.25〜2倍（元アプリと同じ）
   const OUT = "../output/";                                  // 画像・manifest（このページは board/ 配下）
   const API = "../api/";                                     // 更新API（ローカルサーバーのみ）
-  const LS_KEY = "wscBoard.v1";                            // 配置の自動保存
+  const LS_KEY = "wscBoard.v2";                            // 配置の自動保存（v1 は初期値が200hPaだった古い状態が残るため破棄）
   const LS_PRESETS = "wscBoard.presets.v1";                // 登録した配置
   const pad = (n) => String(n).padStart(2, "0");
 
