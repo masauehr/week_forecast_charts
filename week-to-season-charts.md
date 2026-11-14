@@ -30,6 +30,8 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 気象庁アンサンブル | RISHは**2020/03で配信終了**。現行は気象業務支援センター（JMBSC）の有料オンライン配信 | 有料 |
 
 ## 気象庁アンサンブルの有料取得（JMBSC）
+**2026-11-14 決定: 有料のため契約しない（ECMWF ENS で進める）。** 以下は調査結果として残す。
+
 - 週間アンサンブル（8,400円/月）、2週間・1か月（全球7,200円・日本域6,600円/月）、6か月予報（7,200円/月）が配信されている。契約は開設50,000円＋基本4,200円/月（税別）。3種で月約27,000円。
 - 配信は**FTP/SFTPのput（プッシュ型）**で、受信側にFTPサーバと回線が必要。個人契約の可否・公開時の再配布条件・予報業務許可との関係は**未確認**（haisin@jmbsc.or.jp へ問い合わせ）。
 - 方針: まずECMWF ENSで作る。契約は個人可否と公開条件を確認してから判断する。
@@ -57,7 +59,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - 公開サイト: https://masauehr.github.io/week_to_season_charts/ （GitHub Pages・gh-pages ブランチ。PNGとmanifestだけ。GRIB2は載せない）。画面は初期値・図種（C1/C2/C3高温/C3低温）・期間または時刻・領域（東アジア/北半球）を切り替え、←→で期間・時刻、↑↓で図種を切替。
 - 図の更新: GitHub の Actions タブ → `update` → Run workflow（初期値 YYYYMMDDHH を空にすると最新の揃ったもの）。約8分。
 - 画面だけ直す: web/ を push すると `deploy-web` が自動で反映する。
-- 自動化（cron-job.org）は未着手。
+- 自動化: cron-job.org から `update` を1日8回起動（00Z用: UTC 8〜11時、12Z用: UTC 20〜23時の各:30。cron-job.orgの入力はJST）。揃っていない・公開済みなら何もせず終わる。設定手順・トークン（期限90日・Slack通知）は [CRON_JOB_ORG.md](CRON_JOB_ORG.md)。配信時刻の実測は launchd の `check_availability.py`（10分おき）で記録し、時刻を見直す。**cron-job.org のジョブ作成とトークン作成はユーザー作業**（準備はコミット済み）。
 
 ## 改修履歴
 | 日付 | 内容 |
@@ -81,3 +83,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - 注意: C3 の確率は高温側に偏って見えやすい（温暖化の傾向・平年値との系統差）。気象庁の階級確率とは別物。
 | 2026-11-14 | C2（スパゲッティ図）・C3（T850偏差と確率）・逐次集計パイプライン pipeline.py を追加し、通し実行（18枚・約34分）で保存データ版と一致を確認 |
 | 2026-11-14 | 閲覧画面(web/)・GitHub Actions(update 手動実行約8分・deploy-web)・GitHub Pages 公開（https://masauehr.github.io/week_to_season_charts/）を追加 |
+| 2026-11-14 | 自動化の下地（配信時刻の実測 check_availability.py・公開済みスキップ・トークン期限通知・CRON_JOB_ORG.md）を追加。気象庁の有料配信は契約しない決定を記録 |

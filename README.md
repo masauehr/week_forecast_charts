@@ -30,6 +30,7 @@
 | [DESIGN.md](DESIGN.md) | 設計方針・構成・処理の流れ |
 | [CHARTS.md](CHARTS.md) | 図種カタログ（各図の目的・使う要素・読み方） |
 | [DATA_SOURCES.md](DATA_SOURCES.md) | データ源・利用条件・平年値の扱い |
+| [CRON_JOB_ORG.md](CRON_JOB_ORG.md) | cron-job.org での定期起動の設定手順・トークン・期限通知 |
 | [PLAN.md](PLAN.md) | フェーズ計画・未決事項・進捗 |
 | [week-to-season-charts.md](week-to-season-charts.md) | マニュアル（pc_docs/manuals/automation/ と同内容） |
 

@@ -27,6 +27,8 @@
 - 公開する初期値は直近8個（`publish.KEEP_DEFAULT`。1初期値約7MB）。manifest の形を変えたら `web/app.js` も直す。
 - CIの日本語フォントは Noto Sans CJK JP（`charts.py` のフォント指定とワークフローの apt を揃える）。平年値は軽量版 `data/clim/clim_compact.npz` を Actions キャッシュ（`climatology.py --prepare`）。
 - 図のファイル名: `ecmwf-ens_{初期値}_{c1|c2|c3high|c3low}_{p期間|f時間}_{asia|nh}.png`（`publish.parse_name` が読む）。
+- **気象庁（JMBSC）の有料配信は使わない**（2026-11-14 ユーザー決定）。気象庁モデルの追加を提案しない。
+- 定期起動は cron-job.org（[CRON_JOB_ORG.md](CRON_JOB_ORG.md)）。`update.yml` は初期値が空だと「揃っていない／公開済みなら何もしない」。専用トークン `week-to-season-charts-dispatch` の期限は `~/.config/week_to_season_charts/token_expiry` に書き、更新したら書き換える。トークンの値は書かない・貼らない。
 - C3 の確率（±1℃）は温暖化の傾向と平年値の系統差で高温側に偏る。階級確率と混同させない表現を保つ。
 
 ## ドキュメント更新
