@@ -94,6 +94,71 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - 作る: `python mean_pipeline.py --model gsm`（0〜168時間・12時間毎。約8分）。見る: `python serve_local.py` → 標準版・画用紙版でモデルに「JMA GSM（決定論）」を選ぶ。「2モデル比較」「モデル違い」で ENS平均・GEFS平均と並べて、平均でなだらかになる前に近い1つの予報の姿（前線・降水・風の強さ）を見られる。
 - 降水は初期時刻からの積算の12時間差（RR12h）。全図種（300hPa・200hPa・700hPaの上昇流を含む）が作れる。気象庁データなので、配信元（RISH・気象庁）の利用条件に従う。
 
+## ローカル地域「沖縄周辺」の入れ替え方法（2026-11-20）
+
+天気図（アンサンブル平均。`mean_charts.py`）の「沖縄周辺」（内部名 `okinawa`）の**名前と地図の範囲**を、設定ファイルで別の地域（九州・近畿・関東・東北・北海道など）に入れ替えられる。nwp_chart_web と同じ仕組み（共通部品化せずコピー）。地域は**増やさない**（公開サイトのPages容量のため。地域ボタンも増やさない）。統計図（C1〜C3 の `asia`・`nh`）は対象外。
+
+### 手順
+1. `region_config.example.json`（九州周辺の例）を同じフォルダに `region_config.json` という名前でコピーする。ファイルの場所は環境変数 `WFC_REGION_CONFIG` でも指定できる。`region_config.json` は git に含まれない。
+2. 中身を書き換える（書式は下記。下の「設定例」からコピーしてもよい）。
+3. 作図し直す（`python mean_pipeline.py --model gefs|ens|gsm [--init YYYYMMDDHH]`。`--regions okinawa` で入れ替えた地域だけ作れる）。**作成済みの画像は元の範囲のまま**なので、見たい初期値は作り直す。
+4. `python serve_local.py` を再起動してブラウザを再読み込みする。地域名は設定の `label` に変わる。
+- 起動時に `地域の設定ファイル region_config.json を反映: okinawa` と表示されれば読まれている。元に戻すには `region_config.json` を消して作図し直す。
+
+### 書式
+```json
+{
+  "label_zones": { "名前": [東経の小, 東経の大, 北緯の小, 北緯の大] },
+  "regions": {
+    "okinawa": {
+      "label": "九州周辺",
+      "center": [131, 32.5],
+      "width_deg": 14,
+      "bbox": [118, 145, 24, 42],
+      "barb_n": 16,
+      "label_zones": ["kyushu", "east_china_sea"]
+    }
+  }
+}
+```
+
+| 項目 | 意味 | 注意 |
+|---|---|---|
+| `regions` のキー | 入れ替える地域。通常は `okinawa`（沖縄周辺） | **キー名は変えない**（画像の置き場のため）。`japan`・`asia` も指定できるが通常は沖縄側だけ。**新しい地域は作れない**（エラー） |
+| `label` | 画面に出る地域名 | |
+| `center` | 地図の中心 `[経度, 緯度]` | |
+| `width_deg` | 地図の幅[度]（`kind` が `pc` の沖縄周辺） | 高さは幅÷約1.32。`japan` など `lcc` の地域は `width_km` |
+| `bbox` | データの切り出し範囲 `[東経の小, 東経の大, 北緯の小, 北緯の大]` | **表示範囲より広く**取る（狭いと端が空白）。取得データは全球なので東経0〜360度・北緯−90〜90度の中 |
+| `barb_n` | 風矢羽の本数（横方向） | 4以上の整数。省略すれば16 |
+| `coast`・`zoom`・`kind`・`width_km` | 海岸線の精度・補間の細かさ・投影・幅 | 省略すれば元の値 |
+| `label_zones` | 等値線ラベルの重点域の名前の並び | 下記の一覧か、ファイル冒頭の `label_zones` で定義した名前 |
+
+書かなかった項目は元の値のまま。表示範囲は「中心 ± 幅/2」（高さは約 幅÷1.32）で、`bbox` はそれを覆う大きさにする。
+
+### 重点域（`label_zones`）に使える名前
+等値線ラベルが自動配置で付かなかった線にも、箱の中なら必ず1つラベルを付ける仕組み（850/925hPa の気温図など）。`mean_charts.LABEL_ZONES` に定義済み: `east_china_sea`（東シナ海）・`hokkaido`・`tohoku`・`kanto`・`chubu`・`kinki`・`chugoku_shikoku`・`kyushu`・`japan_sea`（日本海）・`pacific_south`（本州南岸の太平洋）・`pacific_east`（東日本の太平洋）。独自の箱はファイルの `label_zones` に足せる。重点域は省略可。
+
+### 設定例（`regions.okinawa` の中身を差し替える。日本列島に沿った9地域）
+| 地域 | `label` | `center` | `width_deg` | `bbox` | `label_zones` |
+|---|---|---|---|---|---|
+| 九州周辺 | 九州周辺 | [131, 32.5] | 14 | [118, 145, 24, 42] | kyushu, chugoku_shikoku, east_china_sea, pacific_south |
+| 近畿周辺 | 近畿周辺 | [135.5, 35] | 12 | [124, 148, 26, 44] | kinki, chubu, chugoku_shikoku, japan_sea, pacific_south |
+| 関東周辺 | 関東周辺 | [139.5, 36] | 10 | [128, 152, 29, 43] | kanto, chubu, tohoku, pacific_south, pacific_east |
+| 東北周辺 | 東北周辺 | [141, 39.5] | 12 | [128, 154, 30, 48] | tohoku, kanto, hokkaido, japan_sea, pacific_east |
+| 北海道周辺 | 北海道周辺 | [143, 43.5] | 14 | [130, 156, 34, 52] | hokkaido, tohoku, japan_sea, pacific_east |
+| 中部周辺 | 中部周辺 | [137.5, 36] | 10 | [126, 150, 28, 44] | chubu, kanto, kinki, japan_sea, pacific_south |
+| 中国・四国周辺 | 中国・四国周辺 | [133, 34] | 12 | [121, 145, 25, 42] | chugoku_shikoku, kyushu, kinki, japan_sea, pacific_south |
+| 日本海周辺 | 日本海周辺 | [135, 39] | 16 | [120, 150, 28, 50] | japan_sea, tohoku, hokkaido, chubu, chugoku_shikoku |
+| 本州南岸の太平洋 | 本州南岸の太平洋 | [139, 31.5] | 16 | [124, 152, 20, 42] | pacific_south, kanto, kinki, chubu, kyushu |
+
+設定の検証と、表示範囲が `bbox` に収まることは確認済み。実際に作図して画像を確認したのは九州（GEFS 平均・850hPa気温）のみ。
+
+### エラーと注意
+- 地域の追加、データ範囲外の `bbox`、未知の項目、未定義の重点域、不正な数値はエラー。**壊れたファイルは警告を出して無視**する（アプリは従来どおり動く）。
+- 設定は**そのマシンの作図にだけ**効く。公開サイトは GitHub Actions が作るので設定ファイルが無く、沖縄周辺のまま。サーバーで使うときは、そのサーバーに `region_config.json` を置いて作図する。
+- 画像の置き場（`output/maps/<モデル>/<初期値>/okinawa/`）は変わらないので、入れ替え前後の画像が混ざらないよう、変更後は作り直す。
+- 画面の地域ボタンの並び・数は変わらない（入れ替えた地域は元の位置）。
+
 ## 改修履歴
 | 日付 | 内容 |
 |---|---|
@@ -127,3 +192,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | GitHub のリポジトリ名を week_to_season_charts → week_forecast_charts に変更（公開サイトURLも変更・旧URLは404）。天気図用 cron-job.org ジョブ（update-maps・暫定・:45）の手順を CRON_JOB_ORG.md 6節に追加 |
 | 2026-11-14 | 200hPa(jet200)・300hPa気温(t300)を日本周辺にも作成（従来は東アジアのみ）。画用紙版の保存キーを wscBoard.v2 に変更。deploy-web の失敗(matplotlib未導入)を修正 |
 | 2026-11-20 | 850hPa気温の等値線を3℃毎に、850・925hPaの気温ラベルを大きめにし東シナ海に必ずラベルを付ける（nwp_chart_web から移植。日本周辺・沖縄周辺） |
+| 2026-11-20 | 地域の設定ファイル（region_config.json）で天気図の「沖縄周辺」を別の地域（九州・関東など9地域の設定例つき）に入れ替えられるようにした（nwp_chart_web と同じ仕組み。地域・地域ボタンは増やさない）。重点域に日本全国の名前を追加 |

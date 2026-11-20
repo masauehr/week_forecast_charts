@@ -43,6 +43,8 @@
 - 公開: Actions `update-maps`。**モデルごとに「作図→公開」が独立して流れる**（再利用ワークフロー `maps-model.yml` を ens・gefs で別々に呼ぶ。早い GEFS（約5分）は遅い ENS（約30分）を待たずに公開される。公開ジョブだけ `concurrency: publish` で順番待ち＝同時pushの取りこぼしなし）。`publish.py --maps-src output/maps/<model>/<init>`（複数可）。天気図は**モデルごとに直近3初期値**を残す（`MAPS_KEEP`。1初期値約60MB）。統計図(`charts/`)と天気図(`maps/output/`)は互いに carry する（片方の更新でもう片方を消さない）。
 - 画面だけ直したら `maps_web/**` を push → `deploy-web` が反映（図は作り直さない）。
 
+- **地域の入れ替え**: `region_config.json`（環境変数 `WFC_REGION_CONFIG`・git除外）で `okinawa` の中身を別の地域に入れ替えられる（`mean_charts.apply_region_config`。nwp_chart_web のコピー。**地域は増やさない・地域ボタンも増やさない**）。公開サイトは設定ファイルが無いので沖縄周辺のまま。直すときは nwp_chart_web と別々に。
+
 ## GSM（ローカル専用・決定論）
 - **GSM の図・データは公開しない**。`maps_manifest.LOCAL_ONLY`（`MODELS["gsm"]` の `local_only`）が基準。4重に除外している（**外さない**）: ①`maps_manifest.write_manifest(public_only=True)` が載せない ②`publish.py` が `LOCAL_ONLY` のモデルの `--maps-src` を拒否 ③`mean_pipeline.py` が `GITHUB_ACTIONS=true` では GSM を作らない ④`update-maps.yml` のモデル選択は ens/gefs のみ。新しいローカル専用モデルを足すなら `local_only` を付ける。
 - 作る: `python mean_pipeline.py --model gsm`（1ステップ約30秒・全15時刻で約8分・約0.9GBを取得して一時領域で削除。出力 `output/maps/gsm/<初期値>/`）。見る: `python serve_local.py`（標準版・画用紙版のモデル選択に「JMA GSM（決定論）」が出る。2モデル比較・モデル違いで ENS平均/GEFS平均と比べられる）。

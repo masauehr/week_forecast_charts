@@ -39,6 +39,8 @@
 https://masauehr.github.io/week_forecast_charts/ （初期値・図種・期間・領域を切り替えて閲覧。PNGとmanifestだけを公開。GRIB2は載せない）
 
 ## 天気図（標準版・画用紙版）
+
+- ローカルでは、設定ファイル `region_config.json` で「沖縄周辺」を九州・関東などに入れ替えられる（手順・書式・9地域の設定例は [week-forecast-charts.md](week-forecast-charts.md) の「ローカル地域「沖縄周辺」の入れ替え方法」）。
 https://masauehr.github.io/week_forecast_charts/maps/ （標準版）／ https://masauehr.github.io/week_forecast_charts/maps/board/ （画用紙版）
 ECMWF ENS 平均・GEFS 平均の**アンサンブル平均場から作った天気図**（地上・850hPa×2・700hPa・500hPa・300/200hPaなど）を、0〜168時間（12時間毎）で閲覧。気象庁 GSM（決定論）の図はローカル専用で、公開しない（`python serve_local.py` で手元だけで比較できる）。
 
