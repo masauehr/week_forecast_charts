@@ -65,6 +65,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - 閲覧: 標準版 https://masauehr.github.io/week_forecast_charts/maps/ ／ 画用紙版 https://masauehr.github.io/week_forecast_charts/maps/board/
 - 内容: ECMWF ENS（50メンバー）と GEFS（NOAA）の**アンサンブル平均場**から、気象庁ビューア風の天気図（地上・850hPa気温湿数風・850hPa相当温位風・700hPa・500hPa・200hPaなど）を 0〜168時間（12時間毎）で表示。nwp_chart_web と同じ操作（時刻のスライダー・再生・2モデル比較・画用紙版は複数の図を並べて移動・拡大縮小）。
 - **850hPa は重ねず2種**（気温・湿数・風 と 相当温位・風）。画用紙版で並べて見る。SSIは描かない。湿数・相当温位は**平均した気温・湿度から計算**（メンバーごとに計算して平均したものではない）。
+- **850・925hPa の気温の等値線**（nwp_chart_web と同じ）: 850hPa は3℃毎・925hPa は2℃毎。気温ラベルは大きめ（12pt）で、東シナ海（東経121〜131度・北緯25〜33度）を通る線には、自動配置でラベルが付かない場合も必ず1つ付ける（日本周辺・沖縄周辺の図。`mean_charts.LABEL_ZONES`・地域の `label_zones`）。
 - **平均図の読み方**: 各メンバーを平均しているため、前線・低気圧・降水・風の強さは1つの予報よりなだらかになり、先の時刻ほど弱まる。予報そのものではない。
 - GEFS の平均(geavg)には300hPaの気温・湿度と700hPaの上昇流が無いので、各メンバー(pgrb2b)から範囲取得して平均して補う（300hPaの図も GEFS で作れる）。
 - 作る: `python mean_pipeline.py --model gefs`（約3分）／`--model ens`（手元で1ステップ約518秒。通常は Actions で実行）。公開は Actions の `update-maps`（手動実行または cron-job.org）。
@@ -125,3 +126,4 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | 気象庁GSM（決定論・ローカル専用）を追加: fetch_gsm.py・mean_pipeline --model gsm・公開除外の4重防御 |
 | 2026-11-14 | GitHub のリポジトリ名を week_to_season_charts → week_forecast_charts に変更（公開サイトURLも変更・旧URLは404）。天気図用 cron-job.org ジョブ（update-maps・暫定・:45）の手順を CRON_JOB_ORG.md 6節に追加 |
 | 2026-11-14 | 200hPa(jet200)・300hPa気温(t300)を日本周辺にも作成（従来は東アジアのみ）。画用紙版の保存キーを wscBoard.v2 に変更。deploy-web の失敗(matplotlib未導入)を修正 |
+| 2026-11-20 | 850hPa気温の等値線を3℃毎に、850・925hPaの気温ラベルを大きめにし東シナ海に必ずラベルを付ける（nwp_chart_web から移植。日本周辺・沖縄周辺） |

@@ -35,6 +35,7 @@
 ## アンサンブル平均の天気図（標準版・画用紙版・2026-11-14）
 - 目的: 週間予報期間（0〜168h・12時間毎）の**アンサンブル平均の天気図**。モデルは ENS（ECMWF ENS 50メンバー平均・`fetch_ens_mean.py`）と GEFS（NOAA の geavg=平均ファイル・`fetch_gefs.py`）。GSM（気象庁・決定論・京大RISH配信）は**ローカル専用**（`fetch_gsm.py`。0〜168h・12時間毎・降水は12時間差）。
 - 作図は nwp_chart_web の `nwp_charts.py` を `mean_charts.py` にコピーして調整したもの（共通部品化しない）。入力は `F` 辞書（msl/sp/u10/v10/t2/tcc/rr/p[気圧面][gh,t,u,v,r,w]）。**図種ごとの必要な気圧面（CHARTS の levels）が F に無ければ作らない**（`charts_for`）。GEFS の平均(geavg)には300hPaの気温・湿度と700hPaの上昇流が無いので、**各メンバー(pgrb2b・31)から範囲取得して平均して補う**（`fetch_gefs.fetch_extras`。1ステップ約24秒）。週間用のジェットは300hPaが主（jet300。jet200・t300は日本周辺・東アジア）。
+- **850・925hPa の気温の等値線**: 850hPa は3℃毎・925hPa は2℃毎、ラベルは大きめ（fs=12）。日本周辺・沖縄周辺は `label_zones=("east_china_sea",)`（`LABEL_ZONES`）で、東シナ海を通る線に必ずラベルを付ける（nwp_chart_web のコピー。別々に直す）。
 - **850hPa は2種に分ける**: `t850`（気温・湿数・風）と `ept850`（相当温位・風）。SSI は描かない。**湿数・EPT はアンサンブル平均場（気温・湿度）から計算**（メンバーごとに計算して平均したものではない）。マニフェストの免責にも明記してある。**平均図は前線・降水・風がなだらかになる（予報そのものではない）旨の表示を外さない**。
 - 画面は nwp_chart_web の `web/` を `maps_web/` にコピーして調整（更新・同期・過去分・断面図は hidden）。画像規則・manifest は nwp_chart_web と同じ（`output/{model}/{init}/{region}/{chart}_{ft:03d}.png`、`maps_manifest.py`）。公開サイトの `maps/` 配下に置く。**localStorage のキーは `wsc_size`・`wscBoard.v2`・`wscBoard.presets.v1`**（同じドメイン masauehr.github.io の nwp_chart_web とキーを共有しない）。
 - ローカルで見る: `python serve_local.py`（http://127.0.0.1:8803/ ・/maps/ ・/maps/board/。手元の output/ をそのまま表示。事前に `mean_pipeline.py`・`pipeline.py` で作る）。
