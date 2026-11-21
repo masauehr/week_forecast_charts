@@ -1,0 +1,177 @@
+{
+ "updated": "2026-11-21T09:15Z",
+ "inits": [
+  {
+   "init": "2026111312",
+   "files": [
+    {
+     "name": "ecmwf-ens_2026111312_c1_p1_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c1",
+     "kind": "period",
+     "value": 1,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c1_p1_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c1",
+     "kind": "period",
+     "value": 1,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c1_p2_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c1",
+     "kind": "period",
+     "value": 2,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c1_p2_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c1",
+     "kind": "period",
+     "value": 2,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c2_f168_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c2",
+     "kind": "step",
+     "value": 168,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c2_f168_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c2",
+     "kind": "step",
+     "value": 168,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c2_f240_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c2",
+     "kind": "step",
+     "value": 240,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c2_f240_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c2",
+     "kind": "step",
+     "value": 240,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c2_f336_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c2",
+     "kind": "step",
+     "value": 336,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c2_f336_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c2",
+     "kind": "step",
+     "value": 336,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3high_p1_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3high",
+     "kind": "period",
+     "value": 1,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3high_p1_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3high",
+     "kind": "period",
+     "value": 1,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3high_p2_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3high",
+     "kind": "period",
+     "value": 2,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3high_p2_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3high",
+     "kind": "period",
+     "value": 2,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3low_p1_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3low",
+     "kind": "period",
+     "value": 1,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3low_p1_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3low",
+     "kind": "period",
+     "value": 1,
+     "region": "nh"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3low_p2_asia.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3low",
+     "kind": "period",
+     "value": 2,
+     "region": "asia"
+    },
+    {
+     "name": "ecmwf-ens_2026111312_c3low_p2_nh.png",
+     "model": "ecmwf-ens",
+     "init": "2026111312",
+     "chart": "c3low",
+     "kind": "period",
+     "value": 2,
+     "region": "nh"
+    }
+   ]
+  }
+ ],
+ "legal": {
+  "source": "ECMWF Open Data (IFS ENS), licensed under CC BY 4.0. © ECMWF. Modified: the data were statistically processed into charts. ECMWF does not accept any liability for any error or omission in the data.",
+  "climatology": "NCEP/NCAR Reanalysis daily long-term mean 1991-2020 (NOAA PSL)",
+  "disclaimer": "アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。防災に関わる判断には気象庁の情報を使ってください。"
+ }
+}
