@@ -143,8 +143,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return self._json(404, {"error": "未対応のAPIです"})
 
     def end_headers(self):
-        if self.path.split("?", 1)[0].endswith(".json"):   # manifest はキャッシュさせない
-            self.send_header("Cache-Control", "no-store")
+        # 画面（html/js/css）と manifest は毎回取り直させる（手元で画面を直しても古い版が残らないように）。画像はキャッシュしてよい
+        if self.path.split("?", 1)[0].endswith((".json", ".js", ".css", ".html", "/")):
+            self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
 
