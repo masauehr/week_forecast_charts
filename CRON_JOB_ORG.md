@@ -74,6 +74,7 @@ GitHub の Fine-grained tokens で `week_to_season_charts`（トークン名）�
 9. テスト実行で GitHub の Actions タブに `update` が起動すれば成功（揃い済み・公開済みなら数十秒で何もせず終了する）
 
 ## 5. 確認・トラブル
+- **2026-11-23: `week_forecast_charts update` ジョブを有効化**（それまで Enable job が OFF で 11/14 から統計図が止まっていた）。Test run で GitHub の `update` が起動・成功を確認。ジョブが無効のままでも画面上では URL・スケジュールが正しく見えるので、**Enable job が ON か必ず確認する**。URL をブラウザで開くと 404 になるが POST 専用のため正常（確認は Test run で行う）。
 - 動作確認: GitHub の Actions → `update` の履歴。公開済みの回は「すでに公開済みのため何もしません」、新しい初期値の回は約8分で公開まで進む。
 - 公開されない: 初期値が揃っていない（`check_availability.py --report`）／トークン期限切れ（401）／cron-job.org のジョブが失敗続きで自動無効化されていないか。
 - 手動で作る: GitHub の Actions → update → Run workflow（初期値を指定すれば公開済みでも作り直す）。
