@@ -58,20 +58,42 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_foreca
 ### 3-3. トークンの更新
 GitHub の Fine-grained tokens で `week_to_season_charts`（トークン名）を Regenerate（または新規作成）→ cron-job.org の各ジョブのヘッダー `Authorization: Bearer <新しい値>` を差し替え → `~/.config/week_forecast_charts/token_expiry` を書き換え。
 
-## 4. cron-job.org のジョブ設定
-1. https://cron-job.org でアカウント作成（無料）→ ログイン → **CREATE CRONJOB**
-2. Title: `week_forecast_charts update`
-3. URL: `https://api.github.com/repos/masauehr/week_forecast_charts/actions/workflows/update.yml/dispatches`
-4. Execution schedule: **User-defined**。分=30、時=1節の表の JST の時（17,18,19,20,5,6,7,8）、日・月・曜日=すべて。Time zone は Asia/Tokyo
-5. Advanced → Request method: **POST**、Request body: `{"ref":"main"}`
-6. Advanced → Headers（4つ）:
-   - `Authorization` : `Bearer <3-1のトークン>`
+## 4. cron-job.org のジョブ設定（画面のラベルに沿った手順・2026-11-23 改訂）
+**先に確認**: すでに `week_forecast_charts update` というジョブが一覧にあるなら新規作成しない。開いて **Enable job が ON か**（トグルが右・色付き）を見る。設定が正しく見えても OFF のままだと一度も起動しない（2026-11-23 に 11/14 から統計図が止まっていた原因）。新規に作る場合は、既存の `update-maps` ジョブを ACTIONS → **Duplicate** で複製して、Title・URL・時刻（分）だけ変えると楽（ヘッダー・本文・通知を引き継げる）。
+
+### 4-1. COMMON タブ
+1. https://cron-job.org でログイン → **CREATE CRONJOB**（複製の場合は Duplicate）
+2. **Title**: `week_forecast_charts update`
+3. **URL**: `https://api.github.com/repos/masauehr/week_forecast_charts/actions/workflows/update.yml/dispatches`
+   - ブラウザで開くと `404 Not Found` になるが**正常**（POST 専用で、トークンも付かないため。確認は 4-4 の Test run で行う）
+4. **Enable job**: **ON にする**（新規作成時の既定は ON だが、複製時や自動停止後は OFF のことがある）
+5. **Save responses in job history**: 立ち上げ時は ON にしておくと、失敗したとき GitHub の返答（401・404 の理由など）が履歴に残る。安定したら OFF でよい
+6. **Execution schedule**: 一番下の **Custom** を選ぶ（「Every 15 minutes」等ではない）
+   - Days of month・Days of week・Months は**すべて選択**のまま
+   - **Hours**: `5, 6, 7, 8, 17, 18, 19, 20` だけを選ぶ（Ctrl/Cmd を押しながらクリックで複数選択。選び間違えたら全部外してやり直す）
+   - **Minutes**: `30` だけを選ぶ
+   - 入力は **JST**（下の Time zone が Asia/Tokyo であることを確認。UTCと取り違えない）
+   - 確認: 下の **Crontab expression** が `30 5-8,17-20 * * *` になっていること。右の「Next executions」に 5:30・6:30・7:30・8:30・17:30・18:30・19:30・20:30 が並べばよい
+   - 天気図ジョブ（6節）は分が `45`（`45 5-8,17-20 * * *`）
+
+### 4-2. ADVANCED タブ
+7. **Request method**: **POST**
+8. **Request body**: `{"ref":"main"}`
+9. **Headers**（4つ。「ADD HEADER」で追加）:
+   - `Authorization` : `Bearer <3-1のトークン>`（値は貼るだけ。ここ以外には書かない。期限は 3-2 の `token_expiry`）
    - `Accept` : `application/vnd.github+json`
    - `X-GitHub-Api-Version` : `2022-11-28`
    - `Content-Type` : `application/json`
-7. NOTIFICATIONS タブ: 「execution of the cronjob fails」を ON（Notify after **1** failure）、「the cronjob will be disabled because of too many failures」を ON（自動停止の通知は必須）。「succeeds after it failed before」と「TLS certificate is about to expire」は OFF でよい（宛先は GitHub のAPIで管理できないため）。Notify via は既定の all notification channels（登録はアカウントのメール。足りなければ Settings の Notification channels で確認）。なお cron-job.org が検知する失敗は HTTP が 2xx 以外のとき（401 トークン不正・期限切れ、403 権限不足、404 URL違い）だけ。Actions の中での作図の失敗は検知できないので、GitHub の Actions 失敗メールで気づく。
-8. 保存後、**Test run** で `204 No Content` が返ることを確認（401＝トークン不正・期限切れ、403＝権限不足、404＝URL違い）
-9. テスト実行で GitHub の Actions タブに `update` が起動すれば成功（揃い済み・公開済みなら数十秒で何もせず終了する）
+   - 複製したジョブなら、`update-maps` と**同じトークン・同じ4つ**がそのまま入っている
+
+### 4-3. NOTIFICATIONS タブ
+10. 「execution of the cronjob fails」を ON（Notify after **1** failure）、「the cronjob will be disabled because of too many failures」を ON（**自動停止の通知は必須**）。「succeeds after it failed before」と「TLS certificate is about to expire」は OFF でよい。Notify via は既定の all notification channels（登録はアカウントのメール。足りなければ Settings の Notification channels で確認）。
+    - cron-job.org が検知する失敗は HTTP が 2xx 以外のとき（401 トークン不正・期限切れ、403 権限不足、404 URL違い）だけ。Actions の中での作図の失敗は検知できないので、GitHub の Actions 失敗メールで気づく。
+
+### 4-4. 保存とテスト
+11. 右上の **SAVE**（保存しないと上の変更は反映されない）
+12. 右上の **ACTIONS** メニュー → **Test run**。`204 No Content`（または success）が出れば成功。401＝トークン不正・期限切れ、403＝権限不足、404＝URL違い（URL のリポジトリ名・ファイル名を確認）
+13. GitHub の Actions タブに `update` が `workflow_dispatch` で起動すれば成功（揃い済み・公開済みなら数十秒で何もせず終了する）。ジョブ一覧で Enable が ON で、次回実行（Next execution）が今後の日時になっていることも確認する
 
 ## 5. 確認・トラブル
 - **2026-11-23: `week_forecast_charts update` ジョブを有効化**（それまで Enable job が OFF で 11/14 から統計図が止まっていた）。Test run で GitHub の `update` が起動・成功を確認。ジョブが無効のままでも画面上では URL・スケジュールが正しく見えるので、**Enable job が ON か必ず確認する**。URL をブラウザで開くと 404 になるが POST 専用のため正常（確認は Test run で行う）。
