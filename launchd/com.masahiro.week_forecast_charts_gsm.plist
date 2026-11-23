@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- ローカル専用の GSM（気象庁・決定論）の天気図を、1時間おきに「RISH に0〜168hが揃った最新の初期値」まで更新する。
+       すでに作成済みなら数秒で終わる。作成には約8分・約0.9GBを取得（一時領域で削除）。3日より古い GSM は自動削除。公開しない。
+       ログ: logs/gsm.log
+       登録: cp このファイル ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_forecast_charts_gsm.plist
+       止める: launchctl bootout gui/$(id -u)/com.masahiro.week_forecast_charts_gsm -->
+  <key>Label</key><string>com.masahiro.week_forecast_charts_gsm</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/anaconda3/envs/met_env_310/bin/python</string>
+    <string>/Users/masahiro/projects/week_forecast_charts/update_gsm.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/masahiro/projects/week_forecast_charts</string>
+  <key>StartInterval</key><integer>3600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/masahiro/projects/week_forecast_charts/logs/gsm.log</string>
+  <key>StandardErrorPath</key><string>/Users/masahiro/projects/week_forecast_charts/logs/gsm.log</string>
+</dict>
+</plist>

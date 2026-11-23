@@ -52,6 +52,7 @@
 
 ## GSM（ローカル専用・決定論）
 - **GSM の図・データは公開しない**。`maps_manifest.LOCAL_ONLY`（`MODELS["gsm"]` の `local_only`）が基準。4重に除外している（**外さない**）: ①`maps_manifest.write_manifest(public_only=True)` が載せない ②`publish.py` が `LOCAL_ONLY` のモデルの `--maps-src` を拒否 ③`mean_pipeline.py` が `GITHUB_ACTIONS=true` では GSM を作らない ④`update-maps.yml` のモデル選択は ens/gefs のみ。新しいローカル専用モデルを足すなら `local_only` を付ける。
+- **自動更新（2026-11-23）**: `update_gsm.py`（launchd `com.masahiro.week_forecast_charts_gsm` 1時間おき・`logs/gsm.log`）。RISH に揃った最新の初期値が手元に無ければ作り、3日より古い GSM を削除する（冪等）。Actions・公開には絡めない。
 - 作る: `python mean_pipeline.py --model gsm`（1ステップ約30秒・全15時刻で約8分・約0.9GBを取得して一時領域で削除。出力 `output/maps/gsm/<初期値>/`）。見る: `python serve_local.py`（標準版・画用紙版のモデル選択に「JMA GSM（決定論）」が出る。2モデル比較・モデル違いで ENS平均/GEFS平均と比べられる）。
 - 気象庁データなので、**配信元（RISH・気象庁）の利用条件に従う**。再配布・公開する場合は条件を先に確認する（このプロジェクトでは公開しない）。
 

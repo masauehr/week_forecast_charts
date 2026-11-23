@@ -81,6 +81,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
   - 実行: 画面の「同期」ボタン（統計図・標準版・画用紙版。`serve_local.py` の `/api/sync`・`/api/status`。ローカルのみ・他サイトからのPOSTは拒否・公開サイトにはAPIが無いのでボタンも出ない）／`python sync_public.py [--force]`／launchd `launchd/com.masahiro.week_forecast_charts_sync.plist`（30分おき・ログ `logs/sync.log`。**登録はユーザー作業**: 手順はplist内のコメント）。公開ブランチの先頭が前回と同じなら何もしない。
   - 同期完了後は画面を再読み込みすると新しい図が出る（統計図の画面は新規取り込みがあれば自動で読み込み直す）。
   - **古い `serve_local.py` が動いたままだと新しい同期APIが効かない**。`lsof -nP -iTCP:8803 -sTCP:LISTEN` で確認し、止めてから met_env_310 で起動し直す。
+- **GSM のローカル自動更新（2026-11-23）**: `update_gsm.py`（launchd `com.masahiro.week_forecast_charts_gsm`・1時間おき・ログ `logs/gsm.log`）。RISH に 0〜168h が全部揃った最新の初期値（00/12UTC）が手元に無ければ `mean_pipeline.py --model gsm --init …` で作る（約8分・約0.9GB取得して削除）。作成済みなら数秒で終わる（冪等）。初期時刻が3日より古い GSM は自動削除（`.keep` があれば残す）。Actions では動かず、公開もしない。
 - 表示が空になったとき: 画面の案内に従う（天気図は `mean_pipeline.py` で作り、`serve_local.py` で起動）。作図が途中で止まっても manifest は書く。
 
 ## 天気図の更新の仕組み（Actions）
@@ -195,6 +196,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | 統計図の画面に、並べて表示（別の図／別の初期値の比較）と画像の大きさ選択・保存リンクを追加（天気図の標準版と同様） |
 | 2026-11-14 | 統計図のメニューをコンパクト化（期間・領域・表示を1行にまとめて、行数を6行から3行（並べて表示のときは4行）へ。ボタン・余白も縮小） |
 | 2026-11-23 | 公開分の同期（sync_public.py）を追加: 画面の「同期」ボタン（統計図・標準版・画用紙版）・launchd 30分おき。公開側の統計図・ENS・GEFS天気図を手元へ取り込み、古い初期値を整理（GSMは対象外） |
+| 2026-11-23 | GSM のローカル自動更新（update_gsm.py・launchd 1時間おき・3日より古いものは自動削除）を追加。統計図 `update` の定期起動（cron-job.org）が未設定で 11/14 から更新が止まっていたため、手動実行して設定手順を再確認 |
 | 2026-11-14 | 気象庁GSM（決定論・ローカル専用）を追加: fetch_gsm.py・mean_pipeline --model gsm・公開除外の4重防御 |
 | 2026-11-14 | GitHub のリポジトリ名を week_to_season_charts → week_forecast_charts に変更（公開サイトURLも変更・旧URLは404）。天気図用 cron-job.org ジョブ（update-maps・暫定・:45）の手順を CRON_JOB_ORG.md 6節に追加 |
 | 2026-11-14 | 200hPa(jet200)・300hPa気温(t300)を日本周辺にも作成（従来は東アジアのみ）。画用紙版の保存キーを wscBoard.v2 に変更。deploy-web の失敗(matplotlib未導入)を修正 |
