@@ -216,7 +216,31 @@ function bindControls() {
   $("region2").addEventListener("change", () => { S.p2.region = $("region2").value; render(); });
 }
 
+// 手元のサーバー（serve_local.py）だけにある「同期」ボタン。公開サイトでは API が無いので出ない
+async function setupSync() {
+  const btn = $("btnSync"), msg = $("syncMsg");
+  async function poll() {
+    let j;
+    try { j = await (await fetch("api/status", { cache: "no-store" })).json(); } catch (e) { btn.hidden = true; return; }
+    btn.hidden = false;
+    const last = (j.log && j.log.length) ? j.log[j.log.length - 1] : "";
+    msg.title = last;
+    if (j.running) { btn.disabled = true; msg.textContent = "同期中…"; setTimeout(poll, 3000); return; }
+    btn.disabled = false;
+    if (j.rc === null || j.rc === undefined) { msg.textContent = ""; return; }
+    msg.textContent = j.rc !== 0 ? "失敗（ログ確認）" : /変更はありません/.test(last) ? "変更なし" : "同期完了";
+    if (j.rc === 0 && /取り込み完了（新規/.test(last)) setTimeout(() => location.reload(), 800);   // 新しい図があれば読み込み直す
+  }
+  btn.onclick = async () => {
+    btn.disabled = true; msg.textContent = "同期を開始しています…";
+    try { await fetch("api/sync", { method: "POST" }); } catch (e) { msg.textContent = "開始できません"; btn.disabled = false; return; }
+    poll();
+  };
+  poll();
+}
+
 async function main() {
+  setupSync();
   try {
     const r = await fetch("manifest.json", { cache: "no-cache" });
     if (!r.ok) throw new Error("HTTP " + r.status);

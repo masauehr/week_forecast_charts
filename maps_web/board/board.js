@@ -655,6 +655,7 @@
       // 更新APIが無い（公開用の静的サイト）場合はボタンごと隠す
       $("btnUpdate").hidden = true; $("btnSync").hidden = true; $("updateMsg").hidden = true; return;
     }
+    $("btnSync").hidden = false;                       // 同期APIがある（ローカルサーバー）ときだけ「同期」ボタンを出す（最新を取得・過去分取得は出さない）
     const last = (j.log && j.log.length) ? j.log[j.log.length - 1] : "";
     if (j.running) {
       $("btnUpdate").disabled = true; $("btnSync").disabled = true;

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- 公開サイト（gh-pages）で GitHub Actions が作った図（統計図・ENS・GEFS天気図）を、30分おきに手元の output/ へ取り込む。
+       公開側に変更が無ければ数秒で終わる。GSM（ローカル専用）には触れない。ログ: logs/sync.log
+       登録: cp このファイル ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.masahiro.week_forecast_charts_sync.plist
+       止める: launchctl bootout gui/$(id -u)/com.masahiro.week_forecast_charts_sync -->
+  <key>Label</key><string>com.masahiro.week_forecast_charts_sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/anaconda3/envs/met_env_310/bin/python</string>
+    <string>/Users/masahiro/projects/week_forecast_charts/sync_public.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/masahiro/projects/week_forecast_charts</string>
+  <key>StartInterval</key><integer>1800</integer>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>/Users/masahiro/projects/week_forecast_charts/logs/sync.log</string>
+  <key>StandardErrorPath</key><string>/Users/masahiro/projects/week_forecast_charts/logs/sync.log</string>
+</dict>
+</plist>

@@ -37,13 +37,18 @@
 - 作図は nwp_chart_web の `nwp_charts.py` を `mean_charts.py` にコピーして調整したもの（共通部品化しない）。入力は `F` 辞書（msl/sp/u10/v10/t2/tcc/rr/p[気圧面][gh,t,u,v,r,w]）。**図種ごとの必要な気圧面（CHARTS の levels）が F に無ければ作らない**（`charts_for`）。GEFS の平均(geavg)には300hPaの気温・湿度と700hPaの上昇流が無いので、**各メンバー(pgrb2b・31)から範囲取得して平均して補う**（`fetch_gefs.fetch_extras`。1ステップ約24秒）。週間用のジェットは300hPaが主（jet300。jet200・t300は日本周辺・東アジア）。
 - **850・925hPa の気温の等値線**: 850hPa は3℃毎・925hPa は2℃毎、ラベルは大きめ（fs=12）。日本周辺・沖縄周辺は `label_zones=("east_china_sea",)`（`LABEL_ZONES`）で、東シナ海を通る線に必ずラベルを付ける（nwp_chart_web のコピー。別々に直す）。
 - **850hPa は2種に分ける**: `t850`（気温・湿数・風）と `ept850`（相当温位・風）。SSI は描かない。**湿数・EPT はアンサンブル平均場（気温・湿度）から計算**（メンバーごとに計算して平均したものではない）。マニフェストの免責にも明記してある。**平均図は前線・降水・風がなだらかになる（予報そのものではない）旨の表示を外さない**。
-- 画面は nwp_chart_web の `web/` を `maps_web/` にコピーして調整（更新・同期・過去分・断面図は hidden）。画像規則・manifest は nwp_chart_web と同じ（`output/{model}/{init}/{region}/{chart}_{ft:03d}.png`、`maps_manifest.py`）。公開サイトの `maps/` 配下に置く。**localStorage のキーは `wsc_size`・`wscBoard.v2`・`wscBoard.presets.v1`**（同じドメイン masauehr.github.io の nwp_chart_web とキーを共有しない）。
+- 画面は nwp_chart_web の `web/` を `maps_web/` にコピーして調整（更新・過去分・断面図は hidden。同期だけは serve_local.py の API があるときに表示）。画像規則・manifest は nwp_chart_web と同じ（`output/{model}/{init}/{region}/{chart}_{ft:03d}.png`、`maps_manifest.py`）。公開サイトの `maps/` 配下に置く。**localStorage のキーは `wsc_size`・`wscBoard.v2`・`wscBoard.presets.v1`**（同じドメイン masauehr.github.io の nwp_chart_web とキーを共有しない）。
 - ローカルで見る: `python serve_local.py`（http://127.0.0.1:8803/ ・/maps/ ・/maps/board/。手元の output/ をそのまま表示。事前に `mean_pipeline.py`・`pipeline.py` で作る）。
 - 作図: `python mean_pipeline.py --model gefs|ens [--init YYYYMMDDHH]`（1ステップ=1プロセスで 取得→F→全図種×全地域を描画。GRIB2は一時領域に置いて削除）。GEFS は全15時刻で約3分・約60MB。ENS は1ステップ約518秒（手元）／Actions では約1/4の見込み。
 - 公開: Actions `update-maps`。**モデルごとに「作図→公開」が独立して流れる**（再利用ワークフロー `maps-model.yml` を ens・gefs で別々に呼ぶ。早い GEFS（約5分）は遅い ENS（約30分）を待たずに公開される。公開ジョブだけ `concurrency: publish` で順番待ち＝同時pushの取りこぼしなし）。`publish.py --maps-src output/maps/<model>/<init>`（複数可）。天気図は**モデルごとに直近3初期値**を残す（`MAPS_KEEP`。1初期値約60MB）。統計図(`charts/`)と天気図(`maps/output/`)は互いに carry する（片方の更新でもう片方を消さない）。
 - 画面だけ直したら `maps_web/**` を push → `deploy-web` が反映（図は作り直さない）。
 
 - **地域の入れ替え**: `region_config.json`（環境変数 `WFC_REGION_CONFIG`・git除外）で `okinawa` の中身を別の地域に入れ替えられる（`mean_charts.apply_region_config`。nwp_chart_web のコピー。**地域は増やさない・地域ボタンも増やさない**）。公開サイトは設定ファイルが無いので沖縄周辺のまま。直すときは nwp_chart_web と別々に。
+
+## 公開分のローカル取り込み（2026-11-23）
+- GRIB2 は公開側にも無いので、手元に無い初期値は `sync_public.py`（画面の「同期」ボタン／launchd 30分おき `launchd/com.masahiro.week_forecast_charts_sync.plist`・登録はユーザー）で公開サイトの PNG を取り込む。統計図＋ens・gefs 天気図が対象で、**GSM には触れない**。取り込みのたびに、公開側の最古より古い手元の初期値を消す（公開側が取れないときは消さない）。
+- 同期APIは `serve_local.py` の `/api/sync`・`/api/status`（ローカルのみ・同一Originのみ。外さない）。`maps_web`・`web` のボタンは API があるときだけ表示。nwp_chart_web の `sync_public.py` とは別々に直す。
+- **古い serve_local.py が残っていると新機能が効かない**。`lsof -nP -iTCP:8803 -sTCP:LISTEN` で確認してから起動する。
 
 ## GSM（ローカル専用・決定論）
 - **GSM の図・データは公開しない**。`maps_manifest.LOCAL_ONLY`（`MODELS["gsm"]` の `local_only`）が基準。4重に除外している（**外さない**）: ①`maps_manifest.write_manifest(public_only=True)` が載せない ②`publish.py` が `LOCAL_ONLY` のモデルの `--maps-src` を拒否 ③`mean_pipeline.py` が `GITHUB_ACTIONS=true` では GSM を作らない ④`update-maps.yml` のモデル選択は ens/gefs のみ。新しいローカル専用モデルを足すなら `local_only` を付ける。

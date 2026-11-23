@@ -75,6 +75,12 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 - **ローカル表示**: `python serve_local.py`（met_env_310）→ http://127.0.0.1:8803/（統計図）、/maps/（天気図 標準版）、/maps/board/（画用紙版）。手元の `output/` をそのまま表示するだけなので、先に `python mean_pipeline.py --model gefs`（ENSは `--model ens`）と `python pipeline.py` で作る。127.0.0.1だけで待ち受け、Ctrl+Cで停止。GSM（ローカル専用）を足すときもここで見られるようにする。
 - **相互リンク**: 統計図の画面の上部から天気図（標準版・画用紙版）へ、標準版・画用紙版の画面から統計図へ移動できる。
 - **週間用のジェットは300hPaが主**（jet300）。GEFS の平均(geavg)には300hPaの気温・湿度が無いので、31メンバーから範囲取得して平均して補う（700hPaの上昇流も同様。1ステップ約24秒）。jet200・t300は日本周辺・東アジア（2026-11-14に日本域へ拡大。1初期値・モデルあたり約+4MB）。画用紙版の既定は 300・500高度・700・850・850EPT・地上。
+- **公開分の同期（2026-11-23）**: GRIB2 は公開側にも無く（Actions のランナーは使い捨て・PNG／manifest／画面だけ公開）、手元で ENS を作ると2時間強かかる。そこで公開サイト（gh-pages）の図を手元の `output/` へ取り込む `sync_public.py` を追加した（nwp_chart_web のコピーを調整。共通部品化しない）。
+  - 取り込むもの: 統計図 `charts/<初期値>/` → `output/<初期値>/`、天気図 `maps/output/{ens,gefs}/<初期値>/` → `output/maps/{ens,gefs}/<初期値>/`。**GSM（ローカル専用）には触れない**。既にある初期値は取り直さない。
+  - 整理: 公開側の最も古い初期値より古い手元の初期値（統計図・ens・gefs）を消す。公開側が取れていないときは消さない。`--no-prune` で整理なし、`--prune-only --dry-run` で対象表示のみ。
+  - 実行: 画面の「同期」ボタン（統計図・標準版・画用紙版。`serve_local.py` の `/api/sync`・`/api/status`。ローカルのみ・他サイトからのPOSTは拒否・公開サイトにはAPIが無いのでボタンも出ない）／`python sync_public.py [--force]`／launchd `launchd/com.masahiro.week_forecast_charts_sync.plist`（30分おき・ログ `logs/sync.log`。**登録はユーザー作業**: 手順はplist内のコメント）。公開ブランチの先頭が前回と同じなら何もしない。
+  - 同期完了後は画面を再読み込みすると新しい図が出る（統計図の画面は新規取り込みがあれば自動で読み込み直す）。
+  - **古い `serve_local.py` が動いたままだと新しい同期APIが効かない**。`lsof -nP -iTCP:8803 -sTCP:LISTEN` で確認し、止めてから met_env_310 で起動し直す。
 - 表示が空になったとき: 画面の案内に従う（天気図は `mean_pipeline.py` で作り、`serve_local.py` で起動）。作図が途中で止まっても manifest は書く。
 
 ## 天気図の更新の仕組み（Actions）
@@ -188,6 +194,7 @@ README / CLAUDE / DESIGN / CHARTS / DATA_SOURCES / PLAN（いずれもプロジ�
 | 2026-11-14 | update-maps をモデルごとに作図→公開が独立する構成に変更（maps-model.yml）。GEFS が ENS の完了を待たされなくなった |
 | 2026-11-14 | 統計図の画面に、並べて表示（別の図／別の初期値の比較）と画像の大きさ選択・保存リンクを追加（天気図の標準版と同様） |
 | 2026-11-14 | 統計図のメニューをコンパクト化（期間・領域・表示を1行にまとめて、行数を6行から3行（並べて表示のときは4行）へ。ボタン・余白も縮小） |
+| 2026-11-23 | 公開分の同期（sync_public.py）を追加: 画面の「同期」ボタン（統計図・標準版・画用紙版）・launchd 30分おき。公開側の統計図・ENS・GEFS天気図を手元へ取り込み、古い初期値を整理（GSMは対象外） |
 | 2026-11-14 | 気象庁GSM（決定論・ローカル専用）を追加: fetch_gsm.py・mean_pipeline --model gsm・公開除外の4重防御 |
 | 2026-11-14 | GitHub のリポジトリ名を week_to_season_charts → week_forecast_charts に変更（公開サイトURLも変更・旧URLは404）。天気図用 cron-job.org ジョブ（update-maps・暫定・:45）の手順を CRON_JOB_ORG.md 6節に追加 |
 | 2026-11-14 | 200hPa(jet200)・300hPa気温(t300)を日本周辺にも作成（従来は東アジアのみ）。画用紙版の保存キーを wscBoard.v2 に変更。deploy-web の失敗(matplotlib未導入)を修正 |

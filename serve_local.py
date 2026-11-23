@@ -16,7 +16,9 @@ import http.server
 import json
 import os
 import socketserver
+import subprocess
 import sys
+import threading
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -68,15 +70,93 @@ def build_site():
     return notes
 
 
+# ---------- 同期ジョブ（画面の「同期」ボタン用。サーバープロセス内で1つだけ）
+LOG_FILE = ROOT / "logs" / "sync_ui.log"
+_job = {"proc": None, "rc": None, "rebuilt": True}
+_job_lock = threading.Lock()
+
+
+def start_sync():
+    """sync_public.py を裏で起動する。実行中なら起動せず False。"""
+    with _job_lock:
+        p = _job["proc"]
+        if p is not None and p.poll() is None:
+            return False
+        LOG_FILE.parent.mkdir(exist_ok=True)
+        f = open(LOG_FILE, "w", encoding="utf-8")        # 毎回上書き（最新の1回分だけ見せる）
+        _job["proc"] = subprocess.Popen([sys.executable, "-u", str(ROOT / "sync_public.py"), "--force"],
+                                        cwd=ROOT, stdout=f, stderr=subprocess.STDOUT)
+        _job["rc"] = None
+        _job["rebuilt"] = False
+        return True
+
+
+def job_status():
+    with _job_lock:
+        p = _job["proc"]
+        running = p is not None and p.poll() is None
+        if p is not None and not running:
+            _job["rc"] = p.returncode
+            if not _job["rebuilt"]:                       # 終わったら _site の manifest を作り直す（画面の再読み込みで新しい図が出る）
+                _job["rebuilt"] = True
+                try:
+                    build_site()
+                except Exception as e:
+                    print("manifest の作り直しに失敗:", e, file=sys.stderr)
+        tail = []
+        if LOG_FILE.exists():
+            tail = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-6:]
+        return {"running": running, "rc": _job["rc"], "log": tail}
+
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    """静的配信に、同期用の API（/api/status・/api/sync。ローカル・同一Originのみ）を足す。"""
+
+    def _json(self, code, obj):
+        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _same_origin(self):
+        """他サイトのページからの POST を拒む（Origin があれば Host と一致すること）。"""
+        o = self.headers.get("Origin")
+        return o is None or o.split("://", 1)[-1] == self.headers.get("Host")
+
+    def do_GET(self):
+        path = self.path.split("?", 1)[0]
+        if path.endswith("/api/status"):
+            return self._json(200, job_status())
+        if "/api/" in path:
+            return self._json(404, {"error": "未対応のAPIです"})
+        return super().do_GET()
+
+    def do_POST(self):
+        path = self.path.split("?", 1)[0]
+        if not self._same_origin():
+            return self._json(403, {"error": "同一Originからのみ実行できます"})
+        if path.endswith("/api/sync"):
+            return self._json(200, {"started": start_sync()})
+        return self._json(404, {"error": "未対応のAPIです"})
+
+    def end_headers(self):
+        if self.path.split("?", 1)[0].endswith(".json"):   # manifest はキャッシュさせない
+            self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=8803)
     a = ap.parse_args()
     for n in build_site():
         print(n)
-    handler = lambda *args, **kw: http.server.SimpleHTTPRequestHandler(*args, directory=str(SITE), **kw)
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("127.0.0.1", a.port), handler) as srv:
+    handler = lambda *args, **kw: Handler(*args, directory=str(SITE), **kw)
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    with socketserver.ThreadingTCPServer(("127.0.0.1", a.port), handler) as srv:
         base = f"http://127.0.0.1:{a.port}"
         print(f"\n起動しました（Ctrl+C で停止）\n  統計図          {base}/\n  天気図 標準版   {base}/maps/\n  天気図 画用紙版 {base}/maps/board/")
         try:
