@@ -36,7 +36,7 @@ LEGAL = {
               "Modified: the data were statistically processed into charts. ECMWF does not accept any liability "
               "for any error or omission in the data.",
     "climatology": "NCEP/NCAR Reanalysis daily long-term mean 1991-2020 (NOAA PSL)",
-    "disclaimer": "アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。"
+    "disclaimer": "アンサンブル統計に基づく傾向であり、気象庁をはじめ、いかなる国・機関の公式予報でもありません。"
                   "防災に関わる判断には気象庁の情報を使ってください。",
 }
 

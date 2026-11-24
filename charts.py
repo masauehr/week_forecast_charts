@@ -99,7 +99,7 @@ def render_c1(zmean, zanom, lats, lons, *, region, init, period_label, steps, me
     vt0, vt1 = steps[0], steps[-1]
     foot = (f"ECMWF IFS ENS ({members}メンバー) 初期値 {init:%Y-%m-%d %H}UTC  対象: 予報{vt0}〜{vt1}時間 "
             f"({len(steps)}時刻の平均)   平年値: {clim_text}\n"
-            f"{source_text}   アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。")
+            f"{source_text}   アンサンブル統計に基づく傾向であり、いかなる国・機関の公式予報でもありません。")
     fig.text(0.03, 0.012, foot, fontsize=6.8, color="#444444", va="bottom", linespacing=1.5)
     fig.savefig(out_path, facecolor="white")
     plt.close(fig)
@@ -142,7 +142,7 @@ def render_c2(members_z, zmean, lats, lons, *, region, init, step, members, sour
         fig.text(0.12 + 0.14 * k, 0.125, f"━ {lev}gpm", color=color, fontsize=10, weight="bold")
     foot = (f"ECMWF IFS ENS ({members}メンバー) 初期値 {init:%Y-%m-%d %H}UTC。線が束ねられている領域は予報の確実性が高く、"
             "ばらける領域は低い。\n"
-            f"{source_text}   アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。")
+            f"{source_text}   アンサンブル統計に基づく傾向であり、いかなる国・機関の公式予報でもありません。")
     fig.text(0.03, 0.012, foot, fontsize=6.8, color="#444444", va="bottom", linespacing=1.5)
     fig.savefig(out_path, facecolor="white")
     plt.close(fig)
@@ -216,7 +216,7 @@ def render_c3(tanom_mean, prob, lats, lons, *, region, init, period_label, steps
     foot = (f"ECMWF IFS ENS ({members}メンバー) 初期値 {init:%Y-%m-%d %H}UTC  対象: 予報{steps[0]}〜{steps[-1]}時間 "
             f"({len(steps)}時刻の平均)   平年値: {clim_text}\n"
             f"確率は「メンバーの期間平均偏差が閾値を超えた割合」で、気象庁の高い/平年並/低いの階級確率とは定義が異なります。"
-            f"{source_text}   アンサンブル統計に基づく傾向であり、気象庁の公式予報ではありません。")
+            f"{source_text}   アンサンブル統計に基づく傾向であり、いかなる国・機関の公式予報でもありません。")
     fig.text(0.02, 0.012, foot, fontsize=6.8, color="#444444", va="bottom", linespacing=1.5)
     fig.savefig(out_path, facecolor="white")
     plt.close(fig)
