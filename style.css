@@ -1,0 +1,81 @@
+:root {
+  --bg: #f7f8fa; --panel: #ffffff; --text: #1d2430; --muted: #5d6877; --line: #d6dbe3;
+  --accent: #1f5fae; --accent-bg: #e6eefa; --warn: #8a4b00; --warn-bg: #fff4e0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181f; --panel: #1c222b; --text: #e6e9ee; --muted: #9aa5b4; --line: #333c49;
+    --accent: #7ab0f5; --accent-bg: #223552; --warn: #f0c27a; --warn-bg: #3a2d14;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 "Hiragino Sans", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif; }
+header, main, footer { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 20px; }
+h1 { font-size: 1.35rem; margin: 0; }
+.sub { margin: 2px 0 14px; color: var(--muted); font-size: .9rem; }
+.muted { color: var(--muted); font-size: .85rem; }
+.controls { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
+.lab, label { width: 3.2em; color: var(--muted); font-size: .85rem; }
+select { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--text); }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: .9rem; padding: 5px 12px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
+  font-weight: 600; }
+.seg button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.view { margin-top: 14px; }
+figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+figure img { display: block; width: 100%; height: auto; border-radius: 6px; background: #fff; }
+figcaption { margin: 6px 4px 2px; color: var(--muted); font-size: .85rem; }
+.help { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; }
+.help summary { cursor: pointer; font-weight: 600; }
+.help p { margin: 6px 0 4px; }
+.keys { margin: 10px 0 0; }
+footer { padding-bottom: 28px; margin-top: 18px; font-size: .8rem; color: var(--muted); }
+footer p { margin: 4px 0; }
+.warn { color: var(--warn); background: var(--warn-bg); padding: 6px 10px; border-radius: 6px; }
+@media (max-width: 560px) { .lab, label { width: auto; } }
+
+.sitenav { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; font-size: .9rem; }
+.sitenav a, .sitenav .here { padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
+.sitenav a { color: var(--accent); background: var(--panel); }
+.sitenav a:hover { background: var(--accent-bg); }
+.sitenav .here { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* 並べて表示・画像の大きさ */
+.chk { width: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--text); font-size: .9rem; cursor: pointer; }
+.inl { width: auto; display: inline-flex; align-items: center; gap: 6px; }
+.dl { margin-left: 8px; font-size: .8rem; color: var(--accent); }
+.views { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.views.two { grid-template-columns: 1fr 1fr; }
+@media (max-width: 760px) { .views.two { grid-template-columns: 1fr; } }
+.views figure[hidden] { display: none; }
+.views img { margin: 0 auto; }
+.size-fit img { width: auto; max-width: 100%; max-height: calc(100vh - 230px); }
+.size-wide img { width: 100%; }
+.size-80 img { width: 80%; }
+.size-60 img { width: 60%; }
+.size-40 img { width: 40%; }
+
+/* hidden 属性を display 指定より優先（.row などの display:flex に負けて表示されるのを防ぐ） */
+[hidden] { display: none !important; }
+
+/* メニューをコンパクトに（期間・領域・表示を1行にまとめ、余白とボタンを小さく） */
+.controls { padding: 8px 12px; }
+.row { margin: 3px 0; gap: 8px; }
+.row.multi { gap: 4px 22px; }
+.grp { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row.multi .lab { width: auto; }
+.seg { gap: 4px; }
+.seg button { padding: 2px 10px; font-size: .85rem; }
+select { padding: 2px 6px; font-size: .88rem; }
+.lab, label { width: 3.6em; white-space: nowrap; }
+.chk, .inl { font-size: .88rem; }
+header { padding-top: 12px; }
+.sub { margin: 0 0 8px; }
+.sitenav { margin: 0 0 8px; }
+.view { margin-top: 10px; }
